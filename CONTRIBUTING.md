@@ -43,11 +43,10 @@ Relire, c'est vérifier que le code répond au ticket, qu'il est testé, lisible
 
 ## Versions, tags et promotion
 
-**Versionnage.** Une seule version pour tout le monorepo, en [SemVer](https://semver.org/lang/fr/) : `vMAJOR.MINOR.PATCH`. Tant que le produit n'est pas livré, on reste en `v0.x`. Les tags ne sont posés que sur `main`.
+**Versionnage.** Une seule version pour tout le monorepo, en [SemVer](https://semver.org/lang/fr/) : `vMAJOR.MINOR.PATCH`. Les tags ne sont posés que sur `main`.
 
 - `feat:` incrémente le MINOR, `fix:` le PATCH, un `!` après le type (`feat!:`) ou un pied `BREAKING CHANGE:` le MAJOR.
-- Un candidat à la livraison est tagué `v0.2.0-rc.1` avant le tag final `v0.2.0`.
-- La version est calculée à partir des Conventional Commits, avec release-please (GitHub Action) : il ouvre une PR « release » qui met à jour le `CHANGELOG.md`, et son merge crée le tag et la GitHub Release. Personne ne tague à la main.
+- La release est créée automatiquement à chaque merge sur `main` qui contient au moins un `feat:` ou un `fix:` depuis le dernier tag : le workflow calcule la version, crée le tag et la GitHub Release avec ses notes. Il n'y a pas de PR de release. Les commits `docs:`, `chore:`, `ci:`, `test:`, `refactor:` et `infra:` seuls ne créent pas de release. Personne ne tague à la main.
 
 **Promotion.** On construit une fois et on promeut le même artefact, sans le reconstruire.
 
