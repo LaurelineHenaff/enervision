@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/projet-piscine-eadl-enervision/enervision/compare/v1.0.1...v1.0.2) (2026-10-19)
+
+
+### Bug Fixes
+
+* admin for app ([ae10e88](https://github.com/projet-piscine-eadl-enervision/enervision/commit/ae10e882f7103aeaf9a0a07416c610cba61b10cd))
+
 ## [1.0.1](https://github.com/projet-piscine-eadl-enervision/enervision/compare/v1.0.0...v1.0.1) (2026-10-19)
 
 
