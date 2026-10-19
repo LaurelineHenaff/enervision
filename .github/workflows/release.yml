@@ -12,7 +12,36 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v4
+      # Jeton d'une GitHub App (variable RELEASE_APP_ID, secret RELEASE_APP_PRIVATE_KEY).
+      # Une PR ouverte avec ce jeton déclenche la CI, et l'App est dans la liste de
+      # contournement du ruleset de main : elle peut merger sa PR de release sans approbation.
+      - uses: actions/create-github-app-token@v2
+        id: app
+        if: vars.RELEASE_APP_ID != ''
         with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          # Sans l'App, repli sur GITHUB_TOKEN : la PR s'ouvre mais ni la CI ni le merge auto ne suivent.
+          token: ${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # La CI est attendue explicitement avant le merge : ci-ok doit être vert.
+      # Le merge par l'App relance ce workflow, qui crée alors le tag et la GitHub Release.
+      - name: Merger la PR de release une fois la CI verte
+        if: steps.release.outputs.prs_created == 'true' && steps.app.outputs.token != ''
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          PR: ${{ fromJSON(steps.release.outputs.pr).number }}
+        run: |
+          # laisse à GitHub le temps de lancer les checks de la PR
+          for i in $(seq 1 12); do
+            if gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --required 2>/dev/null | grep -q .; then break; fi
+            sleep 10
+          done
+          gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --required --watch --fail-fast
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash
