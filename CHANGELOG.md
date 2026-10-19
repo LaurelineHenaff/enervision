@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/projet-piscine-eadl-enervision/enervision/compare/v1.0.0...v1.0.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* lecture robuste de la PR de release dans le workflow ([419a30c](https://github.com/projet-piscine-eadl-enervision/enervision/commit/419a30cf34d37d62d036f231a15cf2bd92af322c))
+
 ## 1.0.0 (2026-10-19)
 
 
