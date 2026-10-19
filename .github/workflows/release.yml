@@ -36,8 +36,12 @@ jobs:
         if: steps.release.outputs.prs_created == 'true' && steps.app.outputs.token != ''
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
-          PR: ${{ fromJSON(steps.release.outputs.pr).number }}
+          PR_JSON: ${{ steps.release.outputs.pr }}
+          PRS_JSON: ${{ steps.release.outputs.prs }}
         run: |
+          # `pr` n'est renseigné que pour une seule PR, `prs` contient la liste
+          if [ -n "$PR_JSON" ]; then PR=$(jq -r '.number' <<<"$PR_JSON"); else PR=$(jq -r '.[0].number' <<<"$PRS_JSON"); fi
+          if [ -z "$PR" ] || [ "$PR" = "null" ]; then echo "Aucune PR de release à merger."; exit 0; fi
           # laisse à GitHub le temps de lancer les checks de la PR
           for i in $(seq 1 12); do
             if gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --required 2>/dev/null | grep -q .; then break; fi
