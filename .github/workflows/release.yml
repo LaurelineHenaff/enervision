@@ -48,4 +48,4 @@ jobs:
             sleep 10
           done
           gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --required --watch --fail-fast
-          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --admin
