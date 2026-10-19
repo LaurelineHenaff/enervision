@@ -20,9 +20,9 @@ Chaque composant garde ses tests. Les workflows de CI/CD vivent dans `.github/wo
 
 1. `main` est toujours déployable. Aucun push direct : tout passe par une pull request.
 2. Une branche par tâche, créée depuis `main` à jour, nommée directement par son sujet, sans préfixe ni `/` : minuscules et tirets, 50 caractères maximum (ex. `endpoint-readings`, `ci-trivy`). Durée de vie visée : moins d'un jour, deux au maximum.
-3. Pull requests petites et ciblées, liées à un ticket Notion (lien dans la description), avec une description et ce qui a été testé.
+3. Pull requests petites et ciblées, liées à une issue GitHub : `Closes #12` dans la description ferme l'issue au merge et déplace sa carte dans le Project. Une PR sans issue est tolérée pour une correction triviale.
 4. Une approbation minimum, donnée par quelqu'un d'autre que l'auteur, et une CI verte avant le merge. Chacun relit au moins une PR par jour.
-5. Merge en **squash**, puis suppression de la branche.
+5. Merge en **squash**. La branche source est supprimée automatiquement au merge (réglage du dépôt « Automatically delete head branches ») ; supprimer aussi la copie locale avec `git branch -d`.
 6. Commits en [Conventional Commits](https://www.conventionalcommits.org/fr) avec un type parmi `feat`, `fix`, `docs`, `chore`, `infra`, `test`, `refactor`, `ci`. Le nom de branche, chaque commit et le titre de la PR sont vérifiés par la CI. Chacun commite avec son propre compte et son vrai nom, sur son poste.
 7. Aucun secret dans Git : variables dans un `.env` ignoré, avec un `.env.example` versionné. Les accès (API, VM, Azure) restent hors dépôt.
 8. Un conflit se résout dans la branche de la tâche (`git rebase main` ou `git merge main`), jamais en réécrivant `main`.
