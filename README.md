@@ -14,11 +14,11 @@ Technos utilisées :
 Le développement se fait sous Windows avec WSL2 et Docker Desktop. La base de données tourne dans un conteneur, et tous les membres de l'équipe utilisent la même image et la même configuration. 
 Ceci permet une isométrie avec la VM Debian commune qui sert d'environnement à la pré-prod & production.
 
-### 1. Installer les prérequis
+### 1. Installer les prérequis (Ne pas oublier GPUPDATE /FORCE)
 
 - **WSL2** : utilise EniLauncher pour passer en mode WSL. Redémarre si demandé, puis ouvre un terminal PowerShell et lance :
   ```powershell
-  wsl
+  wsl --install -d Debian
   ```
 - **Docker Desktop** : ouvre-le, puis dans **Settings > Resources > WSL integration**, active la distribution WSL utilisée (Debian).
 
@@ -27,6 +27,7 @@ Ceci permet une isométrie avec la VM Debian commune qui sert d'environnement à
 Clone le dépôt dans le système de fichiers WSL (plus rapide que `/mnt/c`) :
 
 ```bash
+sudo apt install git
 git clone https://github.com/LaurelineHenaff/enervision.git ~/projects/enervision
 cd ~/projects/enervision
 ```
@@ -41,7 +42,7 @@ Les valeurs par défaut de `.env.example` conviennent au développement local. L
 
 ### 4. Démarrer la base de données
 
-Depuis la racine du projet :
+Depuis la racine du projet, ouvrir un nouveau terminal :
 
 ```bash
 docker compose up -d
