@@ -1,0 +1,4 @@
+# Copier en terraform.tfvars (ignoré par Git) et renseigner les valeurs.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+identifiant     = "prenom.nom"
+index           = 0
