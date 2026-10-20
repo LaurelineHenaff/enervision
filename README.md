@@ -19,13 +19,13 @@ Le développement se fait sous Windows avec WSL2 et Docker Desktop. La base de d
 
 ### 1. Installer les prérequis
 
-- **WSL2** : dans PowerShell (en administrateur) :
-  ```powershell
-  wsl --install
-  ```
-  Redémarre si demandé, puis ouvre la distribution Linux et crée ton utilisateur.
-- **Docker Desktop** : installe-le, puis dans **Settings > Resources > WSL integration**, active la distribution WSL utilisée.
-- **PyCharm** (ou un autre IDE) : installe-le sous Windows.
+- **WSL2** : Utiliser EniLaucnher pour passer en mode WSL.
+
+  Redémarre si demandé, puis ouvre un terminal Powershell et run la commande :
+```
+wsl
+```
+- **Docker Desktop** : Ouvrir puis dans **Settings > Resources > WSL integration**, active la distribution WSL utilisée (Debian).
 
 ### 2. Cloner le projet
 
