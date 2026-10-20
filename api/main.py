@@ -1,10 +1,12 @@
 
+import os
+
 import httpx
 from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
 
-MOCK_API_URL = "http://10.43.43.80:8000"
+MOCK_API_URL = os.getenv("API_MOCK_URL") or "http://10.43.43.80:8000"
 
 
 @app.get("/health")

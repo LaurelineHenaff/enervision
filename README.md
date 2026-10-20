@@ -5,13 +5,9 @@ EnerVision vend de l’optimisation énergétique à des industriels européens 
 
 Technos utilisées :
 
-PostgreSQL 16 + TimescaleDB
-
-FastAPI
-
-React + Vite
-coucou
-Je suis aussi là
+- **Base de données** : PostgreSQL 16 + TimescaleDB
+- **API** : FastAPI (Python 3.13)
+- **Frontend** : Angular 22 (avec SSR)
 
 ## Environnement de développement
 
@@ -19,13 +15,11 @@ Le développement se fait sous Windows avec WSL2 et Docker Desktop. La base de d
 
 ### 1. Installer les prérequis
 
-- **WSL2** : Utiliser EniLaucnher pour passer en mode WSL.
-
-  Redémarre si demandé, puis ouvre un terminal Powershell et run la commande :
-```
-wsl
-```
-- **Docker Desktop** : Ouvrir puis dans **Settings > Resources > WSL integration**, active la distribution WSL utilisée (Debian).
+- **WSL2** : utilise EniLauncher pour passer en mode WSL. Redémarre si demandé, puis ouvre un terminal PowerShell et lance :
+  ```powershell
+  wsl
+  ```
+- **Docker Desktop** : ouvre-le, puis dans **Settings > Resources > WSL integration**, active la distribution WSL utilisée (Debian).
 
 ### 2. Cloner le projet
 
@@ -71,6 +65,27 @@ Arrêter la base (les données restent dans le volume `pgdata`) :
 ```bash
 docker compose down
 ```
+
+### 4 bis. Démarrer l'API
+
+`docker compose up -d` démarre aussi l'API FastAPI (service `api`), une fois la base `healthy`. Le code de `api/` est monté dans le conteneur, et Uvicorn recharge l'API à chaque modification.
+
+- Documentation interactive : http://localhost:8000/docs
+- Santé du mock : http://localhost:8000/health
+
+Après une modification de `api/requirements.txt`, reconstruis l'image :
+
+```bash
+docker compose up -d --build api
+```
+
+Logs de l'API :
+
+```bash
+docker compose logs -f api
+```
+
+L'URL du mock se règle avec `API_MOCK_URL` dans `.env`. Dans le conteneur, la base est joignable via `DATABASE_URL` (hôte `db`).
 
 ### 5. Créer l'environnement Python
 
