@@ -39,14 +39,18 @@ git push -u origin ma-tache
 
 ## Revues
 
-Relire, c'est vérifier que le code répond au ticket, qu'il est testé, lisible et sans secret. Les remarques se font dans la PR. L'auteur répond ou corrige, le reviewer approuve quand tout est réglé. Le rôle tournant (PO, Tech Lead, etc.) ne dispense personne de relire.
+Relire, c'est vérifier que le code répond au ticket, qu'il est testé, lisible et sans secret. Les remarques se font dans la PR. 
+L'auteur répond ou corrige, le reviewer approuve quand tout est réglé. Le rôle tournant (PO, Tech Lead, etc.) ne dispense personne de relire.
 
 ## Versions, tags et promotion
 
 **Versionnage.** Une seule version pour tout le monorepo, en [SemVer](https://semver.org/lang/fr/) : `vMAJOR.MINOR.PATCH`. Les tags ne sont posés que sur `main`.
 
 - `feat:` incrémente le MINOR, `fix:` le PATCH, un `!` après le type (`feat!:`) ou un pied `BREAKING CHANGE:` le MAJOR.
-- La release est créée automatiquement à chaque merge sur `main` qui contient au moins un `feat:` ou un `fix:` depuis le dernier tag : le workflow calcule la version, crée le tag et la GitHub Release avec ses notes. Il n'y a pas de PR de release. Les commits `docs:`, `chore:`, `ci:`, `test:`, `refactor:` et `infra:` seuls ne créent pas de release. Personne ne tague à la main.
+- La release est créée automatiquement à chaque merge sur `main` qui contient au moins un `feat:` ou un `fix:` depuis le dernier tag : 
+- le workflow calcule la version, crée le tag et la GitHub Release avec ses notes. 
+- Il n'y a pas de PR de release. Les commits `docs:`, `chore:`, `ci:`, `test:`, `refactor:` et `infra:` seuls ne créent pas de release. 
+- Personne ne tague à la main.
 
 **Promotion.** On construit une fois et on promeut le même artefact, sans le reconstruire.
 
@@ -57,7 +61,10 @@ Relire, c'est vérifier que le code répond au ticket, qu'il est testé, lisible
 | production | tag `vX.Y.Z` | Azure |
 
 1. Le merge sur `main` construit les images Docker, les tague avec le SHA du commit et les déploie en staging après passage de la CI (tests, Trivy).
-2. Le tag `vX.Y.Z` re-tague la même image (sans la reconstruire) avec la version, puis la déploie en production. L'environnement GitHub `production` exige une approbation manuelle d'une personne autre que l'auteur.
+2. Le tag `vX.Y.Z` re-tague la même image (sans la reconstruire) avec la version, puis la déploie en production. 
+3. L'environnement GitHub `production` exige une approbation manuelle d'une personne autre que l'auteur.
 3. Un retour arrière se fait en redéployant le tag précédent.
 
-**Modèles ML.** Dans MLflow, un modèle entraîné devient `challenger`. Il est promu `champion` (alias utilisé par `/predict` en production) seulement s'il bat le champion actuel sur les métriques de validation. La promotion est tracée dans le registre et mentionnée dans la PR ou le rapport de décision.
+**Modèles ML.** Dans MLflow, un modèle entraîné devient `challenger`. 
+Il est promu `champion` (alias utilisé par `/predict` en production) seulement s'il bat le champion actuel sur les métriques de validation. 
+La promotion est tracée dans le registre et mentionnée dans la PR ou le rapport de décision.
