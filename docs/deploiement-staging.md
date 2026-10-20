@@ -10,14 +10,14 @@ Le staging tourne sur la VM Proxmox du groupe. La VM n'est pas joignable depuis 
 
 ## Contrat pour les compose
 
-Les services du `docker-compose.yml` racine référencent les images publiées, par exemple `image: ghcr.io/projet-piscine-eadl-enervision/enervision/etl:${IMAGE_TAG:-main}`. Un `build:` seul ne serait pas mis à jour par ce mécanisme.
+Les services du `docker-compose.staging.yml` racine (le `docker-compose.yml` est le compose de développement : base seule, mot de passe par défaut) référencent les images publiées, par exemple `image: ghcr.io/projet-piscine-eadl-enervision/enervision/etl:${IMAGE_TAG:-main}`. Un `build:` seul ne serait pas mis à jour par ce mécanisme.
 
 ## Mise en place sur la VM (une seule fois)
 
 ```bash
 git clone https://github.com/projet-piscine-eadl-enervision/enervision /opt/enervision
 install -d -m 700 /etc/enervision
-# créer /etc/enervision/staging.env (droits 600) : MOCK_API_URL, MOCK_API_USERNAME, MOCK_API_PASSWORD, ...
+# créer /etc/enervision/staging.env (droits 600), voir ci-dessous
 cp /opt/enervision/infra/scripts/update-staging.{service,timer} /etc/systemd/system/
 systemctl daemon-reload && systemctl enable --now update-staging.timer
 ```
@@ -31,3 +31,16 @@ Suivi : `systemctl list-timers update-staging.timer` et `journalctl -u update-st
 ## Production
 
 Déclenchée par un tag vers Azure, après validation du staging. Pas encore en place : la VM Azure n'existe pas et n'a pas d'IP publique (voir `infra/terraform/azure`).
+
+## Contenu de `/etc/enervision/staging.env`
+
+```
+POSTGRES_PASSWORD=...
+MOCK_API_URL=...
+MOCK_API_USERNAME=...
+MOCK_API_PASSWORD=...
+# À ajouter quand les images etl et frontend sont publiées sur GHCR :
+# COMPOSE_PROFILES=apps
+```
+
+Au départ, seule la base TimescaleDB démarre. Les services `etl` et `frontend` sont dans le profil `apps`.
