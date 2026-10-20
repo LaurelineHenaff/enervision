@@ -43,4 +43,4 @@ MOCK_API_PASSWORD=...
 # COMPOSE_PROFILES=apps
 ```
 
-Au départ, seule la base TimescaleDB démarre. Les services `etl` et `frontend` sont dans le profil `apps`.
+Au départ, la base TimescaleDB et l'API démarrent (l'image `api` est la seule publiée). Les services `etl` et `frontend` sont dans le profil `apps`. L'API et l'ETL lisent les mêmes variables `MOCK_API_*`, comme `.env.example`. Sur l'hôte, l'API écoute sur le port 8000 et l'ETL sur le 8001.
