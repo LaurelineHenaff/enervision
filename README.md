@@ -5,9 +5,9 @@ EnerVision vend de l’optimisation énergétique à des industriels européens 
 
 Technos utilisées :
 
-PostgreSQL 16 + TimescaleDB
-
-FastAPI
+- **Base de données** : PostgreSQL 16 + TimescaleDB
+- **API** : FastAPI (Python 3.13)
+- **Frontend** : Angular 22 (avec SSR)
 
 ## Environnement de développement
 
@@ -67,6 +67,27 @@ Arrêter la base (les données restent dans le volume `pgdata`) :
 ```bash
 docker compose down
 ```
+
+### 4 bis. Démarrer l'API
+
+`docker compose up -d` démarre aussi l'API FastAPI (service `api`), une fois la base `healthy`. Le code de `api/` est monté dans le conteneur, et Uvicorn recharge l'API à chaque modification.
+
+- Documentation interactive : http://localhost:8000/docs
+- Santé du mock : http://localhost:8000/health
+
+Après une modification de `api/requirements.txt`, reconstruis l'image :
+
+```bash
+docker compose up -d --build api
+```
+
+Logs de l'API :
+
+```bash
+docker compose logs -f api
+```
+
+L'URL du mock se règle avec `API_MOCK_URL` dans `.env`. Dans le conteneur, la base est joignable via `DATABASE_URL` (hôte `db`).
 
 ### 5. Créer l'environnement Python
 
