@@ -9,17 +9,13 @@ PostgreSQL 16 + TimescaleDB
 
 FastAPI
 
-React + Vite
-coucou
-Je suis aussi là
-
 ## Environnement de développement
 
 Le développement se fait sous Windows avec WSL2 et Docker Desktop. La base de données tourne dans un conteneur, et tous les membres de l'équipe utilisent la même image et la même configuration. La VM Debian commune sert uniquement à la production.
 
 ### 1. Installer les prérequis
 
-- **WSL2** : Utiliser EniLaucnher pour passer en mode WSL.
+- **WSL2** : Utiliser EniLauncher pour passer en mode WSL.
 
   Redémarre si demandé, puis ouvre un terminal Powershell et run la commande :
 ```
