@@ -11,7 +11,8 @@ Technos utilisées :
 
 ## Environnement de développement
 
-Le développement se fait sous Windows avec WSL2 et Docker Desktop. La base de données tourne dans un conteneur, et tous les membres de l'équipe utilisent la même image et la même configuration. La VM Debian commune sert uniquement à la production.
+Le développement se fait sous Windows avec WSL2 et Docker Desktop. La base de données tourne dans un conteneur, et tous les membres de l'équipe utilisent la même image et la même configuration. 
+Ceci permet une isométrie avec la VM Debian commune qui sert d'environnement à la pré-prod & production.
 
 ### 1. Installer les prérequis
 
