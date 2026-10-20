@@ -15,13 +15,11 @@ Le développement se fait sous Windows avec WSL2 et Docker Desktop. La base de d
 
 ### 1. Installer les prérequis
 
-- **WSL2** : Utiliser EniLauncher pour passer en mode WSL.
-
-  Redémarre si demandé, puis ouvre un terminal Powershell et run la commande :
-```
-wsl
-```
-- **Docker Desktop** : Ouvrir puis dans **Settings > Resources > WSL integration**, active la distribution WSL utilisée (Debian).
+- **WSL2** : utilise EniLauncher pour passer en mode WSL. Redémarre si demandé, puis ouvre un terminal PowerShell et lance :
+  ```powershell
+  wsl
+  ```
+- **Docker Desktop** : ouvre-le, puis dans **Settings > Resources > WSL integration**, active la distribution WSL utilisée (Debian).
 
 ### 2. Cloner le projet
 
@@ -109,6 +107,7 @@ source .venv/bin/activate
    - Mot de passe : `dev`
    - Base : `enervision`
 
+## Modules
 
 ### Module API
 - Se connecte à la BDD TimescaleDB
@@ -120,7 +119,7 @@ source .venv/bin/activate
 
 ### Module ETL
 - Récupère données de l'API Mock et les stocke dans BDD PostgreSQL
-- Se connecte à la BDD PostgreSQL, transforme les données et les stocke dans une BDD TimescalDB
+- Se connecte à la BDD PostgreSQL, transforme les données et les stocke dans une BDD TimescaleDB
 
 ### Module Frontend
 - Se connecte à l'API
