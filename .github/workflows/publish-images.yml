@@ -1,0 +1,83 @@
+name: Publication des images
+
+# Une image par module (dossier contenant un Dockerfile), publiée sur GHCR.
+# - CI verte sur main : images :main et :sha-<commit>, que la VM de staging récupère.
+# - Tag vX.Y.Z : l'image du commit taggé reçoit le tag de version, sans reconstruction,
+#   pour que la production déploie exactement ce qui a été validé en staging.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [frontend, api, etl, ml]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: docker/login-action@v3
+        if: hashFiles(format('{0}/Dockerfile', matrix.module)) != ''
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+        if: hashFiles(format('{0}/Dockerfile', matrix.module)) != ''
+      - uses: docker/build-push-action@v6
+        if: hashFiles(format('{0}/Dockerfile', matrix.module)) != ''
+        with:
+          context: ${{ matrix.module }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.module }}:main
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.module }}:sha-${{ github.event.workflow_run.head_sha }}
+
+  promote:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [frontend, api, etl, ml]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        if: hashFiles(format('{0}/Dockerfile', matrix.module)) != ''
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+        if: hashFiles(format('{0}/Dockerfile', matrix.module)) != ''
+      - name: Ajouter le tag de version à l'image du commit
+        if: hashFiles(format('{0}/Dockerfile', matrix.module)) != ''
+        run: |
+          src="$IMAGE_PREFIX/${{ matrix.module }}:sha-$GITHUB_SHA"
+          # Le tag est créé dès le merge, souvent avant la fin de la CI : on attend l'image.
+          for i in $(seq 1 40); do
+            if docker buildx imagetools inspect "$src" >/dev/null 2>&1; then
+              docker buildx imagetools create -t "$IMAGE_PREFIX/${{ matrix.module }}:$GITHUB_REF_NAME" "$src"
+              exit 0
+            fi
+            echo "Image $src absente, nouvel essai dans 60 s ($i/40)"
+            sleep 60
+          done
+          echo "::error::Image $src introuvable : la CI de ce commit a-t-elle réussi ?"
+          exit 1

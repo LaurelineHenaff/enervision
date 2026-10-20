@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Met à jour le staging : récupère les compose de main, tire les nouvelles images, relance ce qui a changé.
+# Lancé toutes les 2 minutes par update-staging.timer. Sans effet si rien n'a changé.
+set -euo pipefail
+
+REPO_DIR="${REPO_DIR:-/opt/enervision}"
+ENV_FILE="${ENV_FILE:-/etc/enervision/staging.env}"
+export COMPOSE_PROJECT_NAME=enervision
+
+exec 9>/var/lock/update-staging.lock
+flock -n 9 || { echo "Mise à jour déjà en cours"; exit 0; }
+
+cd "$REPO_DIR"
+git fetch --quiet origin main
+git reset --hard --quiet origin/main
+
+[ -f docker-compose.yml ] || { echo "docker-compose.yml absent à la racine" >&2; exit 1; }
+[ -f "$ENV_FILE" ] || { echo "$ENV_FILE absent" >&2; exit 1; }
+
+docker compose --env-file "$ENV_FILE" pull --ignore-buildable --quiet
+docker compose --env-file "$ENV_FILE" up -d --remove-orphans

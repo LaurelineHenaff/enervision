@@ -1,0 +1,9 @@
+[Unit]
+Description=Mise à jour périodique du staging EnerVision
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+
+[Install]
+WantedBy=timers.target
