@@ -5,6 +5,7 @@ set -euo pipefail
 
 REPO_DIR="${REPO_DIR:-/opt/enervision}"
 ENV_FILE="${ENV_FILE:-/etc/enervision/staging.env}"
+COMPOSE_FILE_STAGING="docker-compose.staging.yml"
 export COMPOSE_PROJECT_NAME=enervision
 
 exec 9>/var/lock/update-staging.lock
@@ -14,8 +15,8 @@ cd "$REPO_DIR"
 git fetch --quiet origin main
 git reset --hard --quiet origin/main
 
-[ -f docker-compose.yml ] || { echo "docker-compose.yml absent à la racine" >&2; exit 1; }
+[ -f "$COMPOSE_FILE_STAGING" ] || { echo "$COMPOSE_FILE_STAGING absent à la racine" >&2; exit 1; }
 [ -f "$ENV_FILE" ] || { echo "$ENV_FILE absent" >&2; exit 1; }
 
-docker compose --env-file "$ENV_FILE" pull --ignore-buildable --quiet
-docker compose --env-file "$ENV_FILE" up -d --remove-orphans
+docker compose -f "$COMPOSE_FILE_STAGING" --env-file "$ENV_FILE" pull --ignore-buildable --quiet
+docker compose -f "$COMPOSE_FILE_STAGING" --env-file "$ENV_FILE" up -d --remove-orphans
