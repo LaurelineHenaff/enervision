@@ -6,8 +6,8 @@ from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
 
-MOCK_API_URL = (os.getenv("API_MOCK_URL") or "http://10.43.43.80:8000").rstrip("/")
-MOCK_API_CREDENTIALS = (os.getenv("API_MOCK_USER"), os.getenv("API_MOCK_PASSWORD"))
+MOCK_API_URL = (os.getenv("MOCK_API_URL") or "http://10.43.43.80:8000").rstrip("/")
+MOCK_API_CREDENTIALS = (os.getenv("MOCK_API_USERNAME"), os.getenv("MOCK_API_PASSWORD"))
 # Authentification basique requise sur l'URL publique, absente sur le réseau de l'école
 MOCK_API_AUTH = MOCK_API_CREDENTIALS if all(MOCK_API_CREDENTIALS) else None
 

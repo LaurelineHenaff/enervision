@@ -87,7 +87,7 @@ Logs de l'API :
 docker compose logs -f api
 ```
 
-L'URL du mock se règle avec `API_MOCK_URL` dans `.env`. Dans le conteneur, la base est joignable via `DATABASE_URL` (hôte `db`).
+L'URL du mock se règle avec `MOCK_API_URL` dans `.env`. Dans le conteneur, la base est joignable via `DATABASE_URL` (hôte `db`).
 
 ### 5. Créer l'environnement Python
 
