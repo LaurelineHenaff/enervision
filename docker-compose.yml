@@ -35,5 +35,17 @@ services:
       db:
         condition: service_healthy
 
+  frontend:
+    build: ./frontend
+    container_name: enervision-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4200}:4200"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api
+
 volumes:
   pgdata:
