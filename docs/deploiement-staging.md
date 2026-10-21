@@ -113,4 +113,4 @@ Pour revenir à une version précédente, mettre `IMAGE_TAG=sha-<commit complet>
 
 ## Production
 
-Déclenchée par un tag vers AWS, après validation du staging et approbation de l'environnement GitHub `production`. Le déploiement prévu passe par AWS Systems Manager (commande lancée sur l'instance, sans SSH), avec une authentification OIDC depuis GitHub Actions. Pas encore en place : l'infrastructure n'est pas créée et le workflow de déploiement reste à écrire (voir `infra/terraform/aws`).
+Déclenchée par un tag vers AWS, après validation du staging et approbation de l'environnement GitHub `production`. Le déploiement prévu passe par AWS Systems Manager (commande lancée sur l'instance, sans SSH), avec une authentification OIDC depuis GitHub Actions. Le workflow `deploy-production.yml` est écrit mais désactivé (variable de dépôt `PRODUCTION_ENABLED`) : l'infrastructure n'est pas encore créée. Sa mise en route, ses variables et le retour arrière sont décrits dans `infra/terraform/aws/README.md`.
