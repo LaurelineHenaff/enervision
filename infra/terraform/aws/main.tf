@@ -59,16 +59,25 @@ resource "aws_iam_instance_profile" "instance" {
   role = aws_iam_role.instance.name
 }
 
+#trivy:ignore:AWS-0104
 resource "aws_security_group" "instance" {
   name        = "${local.name}-instance"
   description = "Instance de production EnerVision"
   vpc_id      = var.vpc_id
 
-  # Le trafic sortant est libre : tirage des images GHCR, API Mock, agent SSM.
+  # Sortie limitée à HTTP et HTTPS (GHCR, dépôts Debian, agent SSM, API Mock).
+  # Les adresses de GHCR et de SSM ne sont pas énumérables, d'où 0.0.0.0/0.
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
