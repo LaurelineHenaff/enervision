@@ -111,16 +111,16 @@ Logs du frontend :
 docker compose logs -f frontend
 ```
 
-Le rendu SSR d'Angular n'accepte que les hôtes listés dans `NG_ALLOWED_HOSTS` (par défaut `localhost` et `127.0.0.1`).
+Le serveur de développement n'accepte que les hôtes listés dans `NG_ALLOWED_HOSTS` (par défaut `localhost` et `127.0.0.1`).
 
-`frontend/Dockerfile` a deux usages. En local, `docker-compose.yml` utilise l'étape `dev` (serveur de développement). La CI construit l'étape finale `prod` : l'application compilée, servie par le serveur SSR Node sur le port 4000. C'est l'image déployée en staging et en production. Pour tester cette image en local :
+`frontend/Dockerfile` a deux usages. En local, `docker-compose.yml` utilise l'étape `dev` (serveur de développement). La CI construit l'étape finale `prod` : l'application compilée, servie par nginx sur le port 8080 du conteneur. C'est la même image en staging et en production : le front appelle l'API par un chemin relatif (`/api/...`) et nginx le transmet à l'adresse donnée par `API_UPSTREAM`, lue au lancement (`http://api:8000` par défaut). Aucune adresse d'environnement n'est fixée à la construction. Pour tester cette image en local, avec l'API lancée par `docker compose up -d` :
 
 ```bash
 docker build -t enervision-frontend-prod ./frontend
-docker run --rm -p 4100:4000 enervision-frontend-prod
+docker run --rm -p 4100:8080 -e API_UPSTREAM=http://host.docker.internal:8000 --add-host=host.docker.internal:host-gateway enervision-frontend-prod
 ```
 
-Puis ouvre http://localhost:4100.
+Puis ouvre http://localhost:4100 (l'API est jointe par http://localhost:4100/api/health).
 
 ### 4 quater. Démarrer l'ETL
 

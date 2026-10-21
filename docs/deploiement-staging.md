@@ -14,7 +14,9 @@ merge sur main -> CI verte -> publish-images.yml -> image sur GHCR -> minuteur d
 2. Toutes les 2 minutes, `update-staging.timer` lance `infra/scripts/update-staging.sh` sur la VM : il aligne le dépôt sur `origin/main`, tire les images puis relance les conteneurs modifiés. Un merge est donc visible sur le staging environ 3 à 5 minutes après la fin de la CI.
 3. Un tag `vX.Y.Z` (créé par le workflow de release) ajoute ce tag à l'image du commit déjà validé, sans reconstruction. La production déploiera cette image.
 
-Seuls les modules qui ont un `Dockerfile` sont publiés. Aujourd'hui, c'est le cas de `api`, `etl` et `frontend` ; `ml` apparaîtra dès que son `Dockerfile` sera sur `main`. L'image `frontend` lance pour l'instant le serveur de développement (`ng serve`, port 4000) : un build de production reste à écrire avant d'en faire l'image du staging final.
+Seuls les modules qui ont un `Dockerfile` sont publiés. Aujourd'hui, c'est le cas de `api`, `etl` et `frontend` ; `ml` apparaîtra dès que son `Dockerfile` sera sur `main`.
+
+L'image `frontend` publiée (cible `prod` du `Dockerfile`) contient le build de production d'Angular servi par nginx (port 8080 dans le conteneur, 4000 sur l'hôte). C'est la même image au staging et en production : le front appelle l'API par un chemin relatif (`/api/...`) et nginx le transmet à l'adresse donnée par la variable `API_UPSTREAM`, lue au lancement du conteneur (`http://api:8000` par défaut). Aucune adresse d'environnement n'est donc fixée à la construction. En développement, `docker-compose.yml` utilise la cible `dev` (`ng serve`).
 
 ## Savoir ce qui est déployé
 

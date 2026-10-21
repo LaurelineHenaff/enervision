@@ -1,7 +1,9 @@
 # Étapes :
 # - dev   : serveur de développement Angular, utilisé par docker-compose.yml (target: dev)
 # - build : compilation de production
-# - prod  : serveur SSR Node, image publiée par la CI pour le staging et la production (étape par défaut)
+# - prod  : nginx qui sert l'application compilée et transmet /api/ à l'API (variable API_UPSTREAM,
+#           lue au lancement). Image publiée par la CI : la même pour le staging et la production
+#           (étape par défaut)
 
 FROM node:24-slim AS base
 
@@ -28,19 +30,13 @@ FROM base AS build
 
 RUN npm run build
 
-FROM node:24-slim AS prod
+FROM nginxinc/nginx-unprivileged:1.28-alpine AS prod
 
-# NG_ALLOWED_HOSTS doit lister le nom ou l'IP de la VM en staging et en production
-ENV NODE_ENV=production \
-    NG_ALLOWED_HOSTS=localhost,127.0.0.1 \
-    PORT=4000
+# Adresse de l'API vers laquelle nginx transmet /api/ (aucune adresse d'environnement n'est
+# fixée à la construction)
+ENV API_UPSTREAM=http://api:8000
 
-WORKDIR /app
+COPY --from=build /app/dist/enervision/browser /usr/share/nginx/html
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-COPY --from=build --chown=node:node /app/dist ./dist
-
-USER node
-
-EXPOSE 4000
-
-CMD ["node", "dist/enervision/server/server.mjs"]
+EXPOSE 8080

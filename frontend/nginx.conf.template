@@ -1,0 +1,32 @@
+# Gabarit rendu au lancement du conteneur (envsubst) : seul ${API_UPSTREAM} est remplacé.
+server {
+    listen 8080;
+    root /usr/share/nginx/html;
+
+    # L'API est appelée en chemin relatif (/api/...) : le préfixe est retiré
+    # avant de transmettre à l'API de l'environnement.
+    location /api/ {
+        proxy_pass ${API_UPSTREAM}/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # Fichiers à empreinte (nom change à chaque build) : cache longue durée
+    location ~* \.(js|css|woff2?|ico|svg|png|jpg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    location / {
+        add_header Cache-Control "no-cache";
+        try_files $uri $uri/index.html /index.csr.html;
+    }
+}

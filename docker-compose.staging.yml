@@ -53,8 +53,13 @@ services:
     profiles: [apps]
     image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/frontend:${IMAGE_TAG:-main}
     restart: unless-stopped
+    environment:
+      # Adresse de l'API à laquelle nginx transmet /api/ (lue au lancement)
+      API_UPSTREAM: http://api:8000
+    depends_on:
+      - api
     ports:
-      - "4000:4000"
+      - "4000:8080"
 
 volumes:
   db_data:
