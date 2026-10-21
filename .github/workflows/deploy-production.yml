@@ -31,7 +31,31 @@ env:
   IMAGE_PREFIX: ghcr.io/${{ github.repository }}
 
 jobs:
+  # Ce job n'a pas d'environnement : il s'exécute avant la demande d'approbation et son résumé
+  # est visible sur la page de l'exécution par la personne qui doit approuver.
+  resume:
+    if: vars.PRODUCTION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Résumé pour l'approbateur
+        env:
+          TAG: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+        run: |
+          {
+            echo "### Mise en production de $TAG"
+            echo
+            echo "- Commit : \`${SHA::7}\`"
+            echo "- Notes de la version et commits inclus : $RELEASE_URL"
+            echo "- Ce sont les images déjà recettées en staging qui sont déployées, sans reconstruction."
+            echo
+            echo "Avant d'approuver : la recette a été confirmée au lancement de la release. Il reste à vérifier que ce tag est bien celui annoncé à l'équipe."
+            echo "Après le déploiement, le workflow contrôle que \`/health\` annonce \`production\` et ce commit."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   deploy:
+    needs: resume
     if: vars.PRODUCTION_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment:

@@ -22,7 +22,7 @@ Il faut des identifiants AWS dans l'environnement (profil `aws configure`, SSO o
 
 ## Déploiement : `deploy-production.yml`
 
-Le workflow `.github/workflows/deploy-production.yml` se déclenche sur un tag `vX.Y.Z`. Il attend l'approbation de l'environnement GitHub `production`, vérifie que les images du tag sont publiées sur GHCR, assume le rôle de déploiement par OIDC, puis lance sur l'instance (SSM Run Command) : `git checkout` du tag, `docker compose pull` et `up -d` avec `IMAGE_TAG=<tag>`, puis attente de `/health`. Il contrôle enfin que l'API annonce `production` et le commit du tag.
+Le workflow `.github/workflows/deploy-production.yml` se déclenche sur un tag `vX.Y.Z`, posé à la main par le workflow `Release` après la recette du staging. Un premier job écrit un résumé de la version (tag, commit, lien vers les notes) pour l'approbateur ; le job de déploiement attend ensuite l'approbation de l'environnement GitHub `production`, vérifie que les images du tag sont publiées sur GHCR, assume le rôle de déploiement par OIDC, puis lance sur l'instance (SSM Run Command) : `git checkout` du tag, `docker compose pull` et `up -d` avec `IMAGE_TAG=<tag>`, puis attente de `/health`. Il contrôle enfin que l'API annonce `production` et le commit du tag.
 
 Mise en route, dans l'ordre :
 

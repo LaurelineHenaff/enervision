@@ -57,7 +57,9 @@ Relire, c'est vérifier que le code répond au ticket, qu'il est testé, lisible
 | production | tag `vX.Y.Z` | AWS |
 
 1. Le merge sur `main` construit les images Docker, les tague avec le SHA du commit et les déploie en staging après passage de la CI (tests, Trivy).
-2. Le tag `vX.Y.Z` re-tague la même image (sans la reconstruire) avec la version, puis la déploie en production. L'environnement GitHub `production` exige une approbation manuelle avant le déploiement. L'auteur peut approuver lui-même : la pause sert à vérifier en staging, dans `/health` (titre et sha du commit), que la version à déployer est la bonne.
-3. Un retour arrière se fait en redéployant le tag précédent.
+2. **Recette.** Une personne teste le staging et relève le sha déployé dans `version.sha` de http://10.43.43.50:8000/health. Elle prévient l'équipe de la version qu'elle recette (« je recette `b2e91b8` ») pour que personne ne lance une autre release en parallèle.
+3. **Release.** La même personne lance GitHub > Actions > Release > Run workflow avec ce sha et la case de confirmation cochée. Le tag `vX.Y.Z` est posé sur ce commit exact et re-tague la même image (sans la reconstruire) avec la version.
+4. **Mise en production.** Le tag lance `deploy-production.yml`. L'environnement GitHub `production` exige une approbation avant le déploiement : la page de l'exécution affiche d'abord un résumé (version, commit, lien vers les notes de la release). L'auteur de la release peut approuver lui-même. Une fois déployée, l'API de production doit annoncer l'environnement `production` et le commit du tag sur `/health` ; le workflow le contrôle.
+5. Un retour arrière se fait en redéployant le tag précédent (*Re-run all jobs* de son exécution, après approbation).
 
 **Modèles ML.** Dans MLflow, un modèle entraîné devient `challenger`. Il est promu `champion` (alias utilisé par `/predict` en production) seulement s'il bat le champion actuel sur les métriques de validation. La promotion est tracée dans le registre et mentionnée dans la PR ou le rapport de décision.
