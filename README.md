@@ -28,7 +28,7 @@ Clone le dépôt dans le système de fichiers WSL (plus rapide que `/mnt/c`) :
 
 ```bash
 sudo apt install git
-git clone https://github.com/LaurelineHenaff/enervision.git ~/projects/enervision
+git clone https://github.com/projet-piscine-eadl-enervision/enervision.git ~/projects/enervision
 cd ~/projects/enervision
 ```
 
@@ -38,7 +38,9 @@ cd ~/projects/enervision
 cp .env.example .env
 ```
 
-Les valeurs par défaut de `.env.example` conviennent au développement local. Le fichier `.env` n'est pas versionné.
+Les valeurs par défaut de `.env.example` conviennent au développement local, sauf les trois variables du mock, à renseigner : `MOCK_API_URL`, `MOCK_API_USERNAME` et `MOCK_API_PASSWORD` (URL publique `https://api-mock.charlieandre.fr/` ou interne `http://10.43.43.80:8000`, identifiants dans les notes Teams). Le fichier `.env` n'est pas versionné : ne jamais y mettre de secret dans un fichier suivi par Git.
+
+Ces variables s'appelaient auparavant `API_MOCK_URL`, `API_MOCK_USER` et `API_MOCK_PASSWORD`. Si votre `.env` date d'avant ce renommage, renommez-les, sinon l'API appelle le mock sans authentification (erreur 401).
 
 ### 4. Démarrer la base de données
 
@@ -146,6 +148,15 @@ source .venv/bin/activate
    - Utilisateur : `postgres`
    - Mot de passe : `dev`
    - Base : `enervision`
+
+## Staging
+
+Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, l'image Docker de l'API est publiée sur GHCR, puis la VM la tire toutes les 2 minutes et relance les conteneurs.
+
+- API du staging : http://10.43.43.50:8000/docs (réseau de l'école)
+- Version déployée : http://10.43.43.50:8000/health (titre du commit et sha court)
+
+Le détail (principe, mise en place de la VM, jeton GHCR, dépannage, retour arrière) est dans [`docs/deploiement-staging.md`](docs/deploiement-staging.md).
 
 ## Modules
 
