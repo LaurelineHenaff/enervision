@@ -109,6 +109,26 @@ docker compose logs -f frontend
 
 Le rendu SSR d'Angular n'accepte que les hôtes listés dans `NG_ALLOWED_HOSTS` (par défaut `localhost` et `127.0.0.1`).
 
+### 4 ter. Démarrer le frontend
+
+`docker compose up -d` démarre aussi le frontend Angular (service `frontend`) avec le serveur de développement. Le code de `frontend/` est monté dans le conteneur, et la page se recharge à chaque modification. Les `node_modules` restent dans le conteneur.
+
+- Application : http://localhost:4200
+
+Après une modification de `frontend/package.json`, reconstruis l'image :
+
+```bash
+docker compose up -d --build frontend
+```
+
+Logs du frontend :
+
+```bash
+docker compose logs -f frontend
+```
+
+Le rendu SSR d'Angular n'accepte que les hôtes listés dans `NG_ALLOWED_HOSTS` (par défaut `localhost` et `127.0.0.1`).
+
 ### 5. Créer l'environnement Python
 
 ```bash
