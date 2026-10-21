@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Installe AWS CLI v2, Terraform et GitHub CLI dans ~/.local/bin (sans sudo).
+# Usage : scripts/aws/install-tools.sh [nom-du-profil-aws]   (défaut : enervision)
+# Relançable pour mettre à jour les outils.
+set -euo pipefail
+
+profile=${1:-enervision}
+
+bin=$HOME/.local/bin
+mkdir -p "$bin"
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+# Architecture : AWS utilise x86_64/aarch64, HashiCorp et GitHub amd64/arm64
+arch=$(uname -m)
+case $arch in
+  x86_64) a=amd64 ;;
+  aarch64) a=arm64 ;;
+  *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
+esac
+
+# Lire un champ JSON sans jq
+json_field() { python3 -c "import json, sys; print(json.load(sys.stdin)['$1'])"; }
+
+# --- AWS CLI v2 ---
+echo "==> AWS CLI"
+curl -fsSLo "$tmp/awscli.zip" "https://awscli.amazonaws.com/awscli-exe-linux-$arch.zip"
+unzip -q "$tmp/awscli.zip" -d "$tmp"
+"$tmp/aws/install" -i "$HOME/.local/aws-cli" -b "$bin" --update
+
+# --- Terraform ---
+echo "==> Terraform"
+tfv=$(curl -fsS https://checkpoint-api.hashicorp.com/v1/check/terraform | json_field current_version) || tfv=1.13.3
+curl -fsSLo "$tmp/tf.zip" "https://releases.hashicorp.com/terraform/$tfv/terraform_${tfv}_linux_$a.zip"
+unzip -o -q "$tmp/tf.zip" terraform -d "$bin"
+
+# --- GitHub CLI ---
+echo "==> GitHub CLI"
+ghv=$(curl -fsS https://api.github.com/repos/cli/cli/releases/latest | json_field tag_name) || ghv=v2.62.0
+ghv=${ghv#v}
+curl -fsSL "https://github.com/cli/cli/releases/download/v$ghv/gh_${ghv}_linux_$a.tar.gz" | tar -xz -C "$tmp"
+install -m 755 "$tmp/gh_${ghv}_linux_$a/bin/gh" "$bin/gh"
+
+# --- ~/.bashrc : PATH et profil AWS par défaut (ajoutés une seule fois) ---
+if ! grep -q 'HOME/.local/bin' "$HOME/.bashrc"; then
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >>"$HOME/.bashrc"
+fi
+if ! grep -q "AWS_PROFILE=$profile" "$HOME/.bashrc"; then
+  echo "export AWS_PROFILE=$profile" >>"$HOME/.bashrc"
+fi
+
+echo
+echo "OK. Lance : source ~/.bashrc"
+echo "Puis vérifie : aws --version && terraform version && gh --version"
