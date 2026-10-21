@@ -14,7 +14,7 @@ merge sur main -> CI verte -> publish-images.yml -> image sur GHCR -> minuteur d
 2. Toutes les 2 minutes, `update-staging.timer` lance `infra/scripts/update-staging.sh` sur la VM : il aligne le dépôt sur `origin/main`, tire les images puis relance les conteneurs modifiés. Un merge est donc visible sur le staging environ 3 à 5 minutes après la fin de la CI.
 3. Un tag `vX.Y.Z` (créé par le workflow de release) ajoute ce tag à l'image du commit déjà validé, sans reconstruction. La production déploiera cette image.
 
-Seuls les modules qui ont un `Dockerfile` sont publiés. Aujourd'hui, c'est le cas de `api` uniquement : `etl`, `frontend` et `ml` apparaîtront dès que leur `Dockerfile` sera sur `main`.
+Seuls les modules qui ont un `Dockerfile` sont publiés. Aujourd'hui, c'est le cas de `api`, `etl` et `frontend` ; `ml` apparaîtra dès que son `Dockerfile` sera sur `main`. L'image `frontend` lance pour l'instant le serveur de développement (`ng serve`, port 4000) : un build de production reste à écrire avant d'en faire l'image du staging final.
 
 ## Savoir ce qui est déployé
 
@@ -58,7 +58,7 @@ MOCK_API_PASSWORD=-
 
 - `POSTGRES_PASSWORD` : un mot de passe généré sur la VM (`openssl rand -base64 24 | tr -d '/+='`), différent de celui du développement.
 - `MOCK_API_*` : le mock interne de l'école ne demande pas d'identifiants. Le compose exige pourtant des valeurs non vides pour toutes les variables `MOCK_API_*` (l'ETL en a besoin), d'où le `-`. Avec l'URL publique du mock (`https://api-mock.charlieandre.fr`), mettre les vrais identifiants, qui sont dans les notes Teams.
-- `COMPOSE_PROFILES=apps` active `etl` et `frontend`. Il ne faut l'ajouter qu'une fois leurs images publiées, sinon le `pull` échoue.
+- `COMPOSE_PROFILES=apps` active `etl` et `frontend`. Il ne faut l'ajouter qu'une fois leurs images publiées sur GHCR (vérifier avec `docker pull ghcr.io/projet-piscine-eadl-enervision/enervision/etl:main`), sinon le `pull` échoue.
 - Sur l'hôte, l'API écoute sur le port 8000 et l'ETL sur le 8001.
 
 ## Mise en place sur la VM (une seule fois)
