@@ -234,3 +234,5 @@ __marimo__/
 *.tfvars
 !*.tfvars.example
 crash.log
+backend.hcl
+tfplan
