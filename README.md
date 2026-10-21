@@ -216,7 +216,9 @@ Pour mettre à jour une dépendance, ou toutes :
 ./infra/scripts/compile-requirements.sh --upgrade
 ```
 
-Commite ensuite le `.in` et le `.txt` ensemble, puis reconstruis les images (`docker compose up -d --build`). Le script gère aussi les `requirements-dev.in` s'ils existent.
+Commite ensuite le `.in` et le `.txt` ensemble, puis reconstruis les images (`docker compose up -d --build`).
+
+Les outils de lint et de test (`ruff`, `pytest`, `pytest-cov`) sont dans `requirements-dev.in` et `requirements-dev.txt`, avec le même fonctionnement. Ils ne sont pas installés dans les images Docker, seulement par la CI (et par toi si tu lances `ruff` ou `pytest` en local : `pip install -r requirements.txt -r requirements-dev.txt`). Leur version est figée, pour qu'une nouvelle règle de `ruff` ne casse pas la CI sans que personne n'ait touché au code.
 
 ## Modules
 
