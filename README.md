@@ -111,13 +111,18 @@ Logs du frontend :
 docker compose logs -f frontend
 ```
 
-Le serveur de développement n'accepte que les hôtes listés dans `NG_ALLOWED_HOSTS` (par défaut `localhost` et `127.0.0.1`).
+Le rendu SSR d'Angular n'accepte que les hôtes listés dans `NG_ALLOWED_HOSTS` (par défaut `localhost` et `127.0.0.1`).
 
-`frontend/Dockerfile` a deux usages. En local, `docker-compose.yml` utilise l'étape `dev` (serveur de développement). La CI construit l'étape finale `prod` : l'application compilée, servie par nginx sur le port 8080 du conteneur. C'est la même image en staging et en production : le front appelle l'API par un chemin relatif (`/api/...`) et nginx le transmet à l'adresse donnée par `API_UPSTREAM`, lue au lancement (`http://api:8000` par défaut). Aucune adresse d'environnement n'est fixée à la construction. Pour tester cette image en local, avec l'API lancée par `docker compose up -d` :
+`frontend/Dockerfile` a deux usages. En local, `docker-compose.yml` utilise l'étape `dev` (serveur de développement). La CI construit l'étape finale `prod` : l'application compilée, servie par le serveur SSR Node sur le port 4000. C'est la même image en staging et en production, donc rien qui dépend de l'environnement n'est fixé à la construction. Deux variables sont lues au lancement :
+
+- `NG_ALLOWED_HOSTS` : nom ou IP sous lesquels le site est joint (celle de la VM en staging, l'adresse AWS en production).
+- `API_UPSTREAM` : adresse de l'API (`http://api:8000` par défaut). Le front appelle l'API par un chemin relatif (`/api/...`) et le serveur (`frontend/src/api-proxy.ts`) transmet la requête à cette adresse. **Dans le code du front, toujours utiliser `/api/...`, jamais une URL complète** : elle ne serait valable que dans un seul environnement.
+
+Pour tester l'image de production en local, avec l'API lancée par `docker compose up -d` :
 
 ```bash
 docker build -t enervision-frontend-prod ./frontend
-docker run --rm -p 4100:8080 -e API_UPSTREAM=http://host.docker.internal:8000 --add-host=host.docker.internal:host-gateway enervision-frontend-prod
+docker run --rm -p 4100:4000 -e API_UPSTREAM=http://host.docker.internal:8000 --add-host=host.docker.internal:host-gateway enervision-frontend-prod
 ```
 
 Puis ouvre http://localhost:4100 (l'API est jointe par http://localhost:4100/api/health).

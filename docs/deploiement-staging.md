@@ -16,7 +16,7 @@ merge sur main -> CI verte -> publish-images.yml -> image sur GHCR -> minuteur d
 
 Seuls les modules qui ont un `Dockerfile` sont publiés. Aujourd'hui, c'est le cas de `api`, `etl` et `frontend` ; `ml` apparaîtra dès que son `Dockerfile` sera sur `main`.
 
-L'image `frontend` publiée (cible `prod` du `Dockerfile`) contient le build de production d'Angular servi par nginx (port 8080 dans le conteneur, 4000 sur l'hôte). C'est la même image au staging et en production : le front appelle l'API par un chemin relatif (`/api/...`) et nginx le transmet à l'adresse donnée par la variable `API_UPSTREAM`, lue au lancement du conteneur (`http://api:8000` par défaut). Aucune adresse d'environnement n'est donc fixée à la construction. En développement, `docker-compose.yml` utilise la cible `dev` (`ng serve`).
+L'image `frontend` publiée (cible `prod` du `Dockerfile`) contient le build de production d'Angular, servi par le serveur SSR Node (port 4000). C'est la même image au staging et en production : le front appelle l'API par un chemin relatif (`/api/...`) et le serveur (`frontend/src/api-proxy.ts`) le transmet à l'adresse donnée par la variable `API_UPSTREAM`, lue au lancement du conteneur (`http://api:8000` par défaut). `NG_ALLOWED_HOSTS` est lue de la même façon : elle doit contenir l'IP ou le nom sous lequel le site est joint, sinon le rendu serveur refuse la requête. Aucune adresse d'environnement n'est donc fixée à la construction. En développement, `docker-compose.yml` utilise la cible `dev` (`ng serve`).
 
 ## Savoir ce qui est déployé
 
@@ -52,6 +52,8 @@ MOCK_API_USERNAME=-
 MOCK_API_PASSWORD=-
 # À ajouter quand les images etl et frontend sont publiées sur GHCR :
 # COMPOSE_PROFILES=apps
+# IP ou nom sous lesquels le frontend est joint (indispensable avec le profil apps) :
+# NG_ALLOWED_HOSTS=localhost,127.0.0.1,10.43.43.50
 # Environnement affiché par l'API (staging par défaut, production sur AWS) :
 # APP_ENV=staging
 # Pour figer un commit précis (retour arrière) :
@@ -61,7 +63,8 @@ MOCK_API_PASSWORD=-
 - `POSTGRES_PASSWORD` : un mot de passe généré sur la VM (`openssl rand -base64 24 | tr -d '/+='`), différent de celui du développement.
 - `MOCK_API_*` : le mock interne de l'école ne demande pas d'identifiants. Le compose exige pourtant des valeurs non vides pour toutes les variables `MOCK_API_*` (l'ETL en a besoin), d'où le `-`. Avec l'URL publique du mock (`https://api-mock.charlieandre.fr`), mettre les vrais identifiants, qui sont dans les notes Teams.
 - `COMPOSE_PROFILES=apps` active `etl` et `frontend`. Il ne faut l'ajouter qu'une fois leurs images publiées sur GHCR (vérifier avec `docker pull ghcr.io/projet-piscine-eadl-enervision/enervision/etl:main`), sinon le `pull` échoue.
-- Sur l'hôte, l'API écoute sur le port 8000 et l'ETL sur le 8001.
+- `NG_ALLOWED_HOSTS` : liste des noms ou IP sous lesquels le frontend est joint (`10.43.43.50` en staging). Sans elle, le serveur de rendu refuse les requêtes qui arrivent avec l'IP de la VM.
+- Sur l'hôte, l'API écoute sur le port 8000, l'ETL sur le 8001 et le frontend sur le 4000.
 
 ## Mise en place sur la VM (une seule fois)
 

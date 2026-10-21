@@ -54,12 +54,14 @@ services:
     image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/frontend:${IMAGE_TAG:-main}
     restart: unless-stopped
     environment:
-      # Adresse de l'API à laquelle nginx transmet /api/ (lue au lancement)
+      # Adresse de l'API à laquelle le serveur transmet /api/ (lue au lancement)
       API_UPSTREAM: http://api:8000
+      # Nom ou IP sous lesquels le site est joint (IP de la VM en staging, adresse AWS en production)
+      NG_ALLOWED_HOSTS: ${NG_ALLOWED_HOSTS:-localhost,127.0.0.1}
     depends_on:
       - api
     ports:
-      - "4000:8080"
+      - "4000:4000"
 
 volumes:
   db_data:
