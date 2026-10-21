@@ -50,7 +50,7 @@ MOCK_API_USERNAME=-
 MOCK_API_PASSWORD=-
 # À ajouter quand les images etl et frontend sont publiées sur GHCR :
 # COMPOSE_PROFILES=apps
-# Environnement affiché par l'API (staging par défaut, production sur Azure) :
+# Environnement affiché par l'API (staging par défaut, production sur AWS) :
 # APP_ENV=staging
 # Pour figer un commit précis (retour arrière) :
 # IMAGE_TAG=sha-<commit complet>
@@ -113,4 +113,4 @@ Pour revenir à une version précédente, mettre `IMAGE_TAG=sha-<commit complet>
 
 ## Production
 
-Déclenchée par un tag vers Azure, après validation du staging. Pas encore en place : la VM Azure n'existe pas et n'a pas d'IP publique (voir `infra/terraform/azure`).
+Déclenchée par un tag vers AWS, après validation du staging et approbation de l'environnement GitHub `production`. Le déploiement prévu passe par AWS Systems Manager (commande lancée sur l'instance, sans SSH), avec une authentification OIDC depuis GitHub Actions. Pas encore en place : l'infrastructure n'est pas créée et le workflow de déploiement reste à écrire (voir `infra/terraform/aws`).

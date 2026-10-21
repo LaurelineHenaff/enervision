@@ -24,7 +24,7 @@ Chaque composant garde ses tests. Les workflows de CI/CD vivent dans `.github/wo
 4. Une approbation minimum, donnée par quelqu'un d'autre que l'auteur, et une CI verte avant le merge. Chacun relit au moins une PR par jour.
 5. Merge en **squash**. La branche source est supprimée automatiquement au merge (réglage du dépôt « Automatically delete head branches ») ; supprimer aussi la copie locale avec `git branch -d`.
 6. Commits en [Conventional Commits](https://www.conventionalcommits.org/fr) avec un type parmi `feat`, `fix`, `docs`, `chore`, `infra`, `test`, `refactor`, `ci`. Le nom de branche, chaque commit et le titre de la PR sont vérifiés par la CI. Chacun commite avec son propre compte et son vrai nom, sur son poste.
-7. Aucun secret dans Git : variables dans un `.env` ignoré, avec un `.env.example` versionné. Les accès (API, VM, Azure) restent hors dépôt.
+7. Aucun secret dans Git : variables dans un `.env` ignoré, avec un `.env.example` versionné. Les accès (API, VM, AWS) restent hors dépôt.
 8. Un conflit se résout dans la branche de la tâche (`git rebase main` ou `git merge main`), jamais en réécrivant `main`.
 
 ## Cycle d'une tâche
@@ -54,10 +54,10 @@ Relire, c'est vérifier que le code répond au ticket, qu'il est testé, lisible
 |---|---|---|
 | dev | local, `docker compose` | poste de chacun |
 | staging | merge sur `main` | VM Proxmox du groupe |
-| production | tag `vX.Y.Z` | Azure |
+| production | tag `vX.Y.Z` | AWS |
 
 1. Le merge sur `main` construit les images Docker, les tague avec le SHA du commit et les déploie en staging après passage de la CI (tests, Trivy).
-2. Le tag `vX.Y.Z` re-tague la même image (sans la reconstruire) avec la version, puis la déploie en production. L'environnement GitHub `production` exige une approbation manuelle d'une personne autre que l'auteur.
+2. Le tag `vX.Y.Z` re-tague la même image (sans la reconstruire) avec la version, puis la déploie en production. L'environnement GitHub `production` exige une approbation manuelle avant le déploiement. L'auteur peut approuver lui-même : la pause sert à vérifier en staging, dans `/health` (titre et sha du commit), que la version à déployer est la bonne.
 3. Un retour arrière se fait en redéployant le tag précédent.
 
 **Modèles ML.** Dans MLflow, un modèle entraîné devient `challenger`. Il est promu `champion` (alias utilisé par `/predict` en production) seulement s'il bat le champion actuel sur les métriques de validation. La promotion est tracée dans le registre et mentionnée dans la PR ou le rapport de décision.
