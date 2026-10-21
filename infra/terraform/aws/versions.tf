@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.6"
+  required_version = ">= 1.10"
 
   required_providers {
     aws = {
@@ -8,16 +8,9 @@ terraform {
     }
   }
 
-  # L'état doit être partagé par l'équipe (bucket S3 avec verrouillage) pour éviter
-  # les ressources en double. À activer une fois le bucket créé :
-  #
-  # backend "s3" {
-  #   bucket       = "..."
-  #   key          = "enervision-aws.tfstate"
-  #   region       = "..."
-  #   use_lockfile = true
-  #   encrypt      = true
-  # }
+   # State partagé dans S3 (verrou inclus). Les valeurs sont dans backend.hcl (non versionné) :
+  #   terraform init -backend-config=backend.hcl
+  backend "s3" {}
 }
 
 provider "aws" {
