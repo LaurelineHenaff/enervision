@@ -31,7 +31,7 @@ Mise en route, dans l'ordre :
 3. Dans GitHub, environnement `production` > *Environment variables* : `AWS_REGION`, `AWS_DEPLOY_ROLE_ARN` (sortie `deploy_role_arn`) et `AWS_INSTANCE_ID` (sortie `instance_id`).
 4. Dans GitHub, *Settings > Secrets and variables > Actions > Variables* (variable de dépôt) : `PRODUCTION_ENABLED` à `true`. Tant qu'elle est absente, le workflow ne fait rien.
 
-Retour arrière : rejouer (*Re-run all jobs*) l'exécution du tag précédent, après approbation. L'environnement est limité aux tags `v*`.
+Retour arrière : lancer à la main le workflow « Déploiement en production » (*Run workflow*) en indiquant le tag à restaurer ; l'approbation de l'environnement est la même, et la base est sauvegardée avant le redéploiement (`/var/backups/enervision` sur l'instance, cinq dernières copies). Un lancement manuel s'exécute depuis `main` : l'environnement `production` doit autoriser la branche `main` en plus des tags `v*`. Un tag antérieur à l'ajout du sha dans `/health` échouerait au contrôle final de la version.
 
 ## À confirmer ou à décider
 

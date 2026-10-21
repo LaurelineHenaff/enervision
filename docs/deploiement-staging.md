@@ -111,7 +111,7 @@ docker ps                                           # conteneurs en cours
 | `manifest unknown` | l'image du tag demandé n'est pas (encore) publiée : vérifier la CI et `publish-images.yml` |
 | L'ancienne version tourne encore | CI ou publication non terminée, ou minuteur arrêté |
 
-Pour revenir à une version précédente, mettre `IMAGE_TAG=sha-<commit complet>` dans `staging.env` : le prochain passage du minuteur redéploie cette image. Retirer la ligne pour suivre de nouveau `main`.
+**Retour arrière.** Le staging suit `main` : la voie normale est une PR `revert` du commit fautif, que la VM déploie environ 10 minutes après le merge. En urgence, avec accès à la VM, mettre `IMAGE_TAG=sha-<commit complet>` dans `staging.env` : le prochain passage du minuteur redéploie cette image. Tant que cette ligne existe, le staging est figé (les recettes des autres portent sur une version qui ne bouge plus) et `update-staging.sh` écrit un avertissement à chaque passage dans le journal (`journalctl -u update-staging.service`). La retirer dès que le correctif est fusionné pour suivre de nouveau `main`.
 
 ## Production
 
