@@ -1,0 +1,142 @@
+name: Déploiement en production
+
+# Déclenché par un tag vX.Y.Z (créé par release.yml). Le job attend l'approbation de
+# l'environnement GitHub `production`, puis déploie sur l'instance AWS par Systems Manager :
+# - pas de SSH ni de secret AWS : le workflow échange son jeton OIDC contre le rôle de déploiement
+#   décrit dans infra/terraform/aws ;
+# - ce sont les images validées en staging qui sont déployées (tag de version posé par
+#   publish-images.yml sur l'image du commit), jamais une nouvelle construction.
+#
+# Désactivé tant que la variable de dépôt PRODUCTION_ENABLED n'est pas à `true` : sans cela, chaque
+# release laisserait une demande d'approbation en attente alors que l'infrastructure n'existe pas.
+#
+# Variables de l'environnement `production` (Settings > Environments), valeurs issues des sorties
+# Terraform : AWS_REGION, AWS_DEPLOY_ROLE_ARN (deploy_role_arn), AWS_INSTANCE_ID (instance_id).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  packages: read
+  id-token: write
+
+# Un seul déploiement de production à la fois, jamais interrompu en cours de route.
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  deploy:
+    if: vars.PRODUCTION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Vérifier le nom du tag et la configuration
+        env:
+          TAG: ${{ github.ref_name }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          AWS_INSTANCE_ID: ${{ vars.AWS_INSTANCE_ID }}
+        run: |
+          # Le nom du tag est repris dans une commande exécutée sur l'instance : on n'accepte que vX.Y.Z.
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag $TAG refusé : seuls les tags vX.Y.Z sont déployés."
+            exit 1
+          fi
+          for v in AWS_REGION AWS_DEPLOY_ROLE_ARN AWS_INSTANCE_ID; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Variable $v absente de l'environnement production."
+              exit 1
+            fi
+          done
+
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Vérifier que les images du tag sont publiées
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # publish-images.yml pose le tag de version sur l'image dès que la CI du commit est verte :
+          # on attend jusqu'à 10 minutes qu'il apparaisse.
+          for module in frontend api etl ml; do
+            [ -f "$module/Dockerfile" ] || continue
+            image="$IMAGE_PREFIX/$module:$TAG"
+            for i in $(seq 1 20); do
+              if docker buildx imagetools inspect "$image" >/dev/null 2>&1; then
+                echo "Image $image trouvée."
+                continue 2
+              fi
+              echo "Image $image absente, nouvel essai dans 30 s ($i/20)"
+              sleep 30
+            done
+            echo "::error::Image $image introuvable : la CI du commit taggé a-t-elle réussi ?"
+            exit 1
+          done
+
+      # Action épinglée sur le SHA de la v6.3.0 (même précaution que pour trivy-action).
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Déployer sur l'instance (SSM Run Command)
+        id: deploy
+        env:
+          TAG: ${{ github.ref_name }}
+          INSTANCE_ID: ${{ vars.AWS_INSTANCE_ID }}
+        run: |
+          # Commandes exécutées sur l'instance. TAG est validé plus haut (vX.Y.Z).
+          # production.env (droits 600, créé à la main sur l'instance) contient POSTGRES_PASSWORD,
+          # MOCK_API_*, APP_ENV=production et, si besoin, COMPOSE_PROFILES.
+          script=$(cat <<EOF
+          set -euo pipefail
+          cd /opt/enervision
+          git fetch --quiet --tags origin
+          git checkout --force --quiet "$TAG"
+          export IMAGE_TAG="$TAG" COMPOSE_PROJECT_NAME=enervision
+          compose="docker compose -f docker-compose.staging.yml --env-file /etc/enervision/production.env"
+          \$compose pull --ignore-buildable --quiet
+          \$compose up -d --remove-orphans
+          for i in \$(seq 1 30); do
+            if curl -fsS http://localhost:8000/health; then echo; exit 0; fi
+            sleep 5
+          done
+          echo "L'API ne répond pas après le déploiement" >&2
+          exit 1
+          EOF
+          )
+
+          command_id=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "Déploiement $TAG ($GITHUB_SHA)" \
+            --parameters "$(jq -n --arg s "$script" '{commands: [$s], executionTimeout: ["600"]}')" \
+            --query Command.CommandId --output text)
+          echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
+
+          aws ssm wait command-executed --command-id "$command_id" --instance-id "$INSTANCE_ID" || true
+          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+            --query '{statut: Status, sortie: StandardOutputContent, erreurs: StandardErrorContent}' --output json \
+            | tee invocation.json
+          [ "$(jq -r .statut invocation.json)" = "Success" ] || { echo "::error::Le déploiement a échoué."; exit 1; }
+
+      - name: Contrôler la version déployée
+        run: |
+          # /health doit annoncer l'environnement de production et le commit du tag.
+          sortie=$(jq -r .sortie invocation.json)
+          sha="${GITHUB_SHA::7}"
+          grep -q '"environment":"production"' <<<"$sortie" || { echo "::error::L'API n'annonce pas l'environnement production."; exit 1; }
+          grep -q "\"sha\":\"$sha\"" <<<"$sortie" || { echo "::error::L'API ne tourne pas sur le commit $sha."; exit 1; }
+          echo "Production à jour : $GITHUB_REF_NAME ($sha)"
