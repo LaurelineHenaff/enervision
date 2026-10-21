@@ -2,19 +2,19 @@
 
 Ce document décrit les environnements sur lesquels tourne EnerVision (poste de développement, staging, production), les URLs de chacun, l'API Mock fournie par l'école et les variables qui les distinguent. Les cases marquées **WIP** sont à compléter au fil de l'avancement du projet.
 
-Documents liés : [déploiement du staging](deploiement-staging.md) et [infrastructure Azure](../infra/terraform/azure/README.md).
+Documents liés : [déploiement du staging](deploiement-staging.md) et [infrastructure AWS](../infra/terraform/aws/README.md).
 
 ## 1. Vue d'ensemble
 
 | | dev | staging | production |
 |---|---|---|---|
-| Où | poste de chaque membre (WSL2 Debian + Docker Desktop) | VM Proxmox de l'école, `10.43.43.50` (LXC Debian 13, 4 CPU, 16 Go de RAM, 64 Go) | Azure, VM dans le réseau du groupe (WIP) |
+| Où | poste de chaque membre (WSL2 Debian + Docker Desktop) | VM Proxmox de l'école, `10.43.43.50` (LXC Debian 13, 4 CPU, 16 Go de RAM, 64 Go) | AWS, instance EC2 Debian 13 (WIP) |
 | Compose | `docker-compose.yml` | `docker-compose.staging.yml` | WIP (même compose que le staging prévu) |
-| Déclenchement | `docker compose up -d` à la main | automatique : un minuteur de la VM tire les images GHCR toutes les 2 minutes | tag `vX.Y.Z` après validation du staging (WIP) |
+| Déclenchement | `docker compose up -d` à la main | automatique : un minuteur de la VM tire les images GHCR toutes les 2 minutes | tag `vX.Y.Z`, après validation du staging et approbation de l'environnement GitHub `production` ; déploiement par AWS Systems Manager (WIP) |
 | Origine des images | construites localement (`build:`) | publiées par la CI sur GHCR (tags `main` et `sha-<commit>`) | mêmes images que le staging, promues par le tag de version, sans reconstruction |
 | `APP_ENV` | `dev` | `staging` | `production` |
 | Mock utilisé | interne ou public, au choix | interne | public (WIP) |
-| État | opérationnel | `db` et `api` opérationnels, `etl` et `frontend` non activés | WIP : rien n'est créé sur Azure |
+| État | opérationnel | `db` et `api` opérationnels, `etl` et `frontend` non activés | WIP : rien n'est créé sur AWS |
 
 ## 2. URLs
 
@@ -27,7 +27,7 @@ Documents liés : [déploiement du staging](deploiement-staging.md) et [infrastr
 | Frontend | http://localhost:4000 | WIP (profil `apps` non activé) | WIP |
 | Base de données | `localhost:5432`, base `enervision` | non exposée (réseau interne Docker de la VM) | WIP |
 
-Le staging n'est joignable que depuis le réseau de l'école. En production, l'Application Gateway mutualisée de l'école route le préfixe `/<identifiant>/*` vers la VM de l'apprenant : l'URL de production aura donc probablement la forme `https://<répartiteur>/<identifiant>/...` (WIP, à confirmer à la mise en place).
+Le staging n'est joignable que depuis le réseau de l'école. En production, l'exposition de l'API (HTTPS, répartiteur de charge, nom de domaine, IP publique) n'est pas encore décidée : aucune URL n'est donc fixée (WIP).
 
 ## 3. API Mock
 
@@ -36,13 +36,13 @@ L'API Mock est fournie par l'école. Elle simule les capteurs IoT de 7 sites (`S
 | | URL | Documentation | Authentification |
 |---|---|---|---|
 | Interne (réseau de l'école, Proxmox) | `http://10.43.43.80:8000` | `/docs` | aucune |
-| Publique (Internet, Azure, poste hors école) | `https://api-mock.charlieandre.fr` | `/docs` | basique (identifiants dans les notes Teams, jamais dans le dépôt) |
+| Publique (Internet, AWS, poste hors école) | `https://api-mock.charlieandre.fr` | `/docs` | basique (identifiants dans les notes Teams, jamais dans le dépôt) |
 
 | Environnement | Mock utilisé | Variables |
 |---|---|---|
 | dev | interne si le poste est sur le réseau de l'école, sinon public | `MOCK_API_URL`, `MOCK_API_USERNAME`, `MOCK_API_PASSWORD` dans `.env` |
 | staging | interne | `MOCK_API_URL` dans `/etc/enervision/staging.env` ; identifiants à `-` (le compose exige des valeurs non vides) |
-| production | public (la VM Azure n'atteint pas le réseau interne de l'école) | WIP |
+| production | public (l'instance AWS n'atteint pas le réseau interne de l'école) | WIP |
 
 Endpoints principaux :
 
@@ -116,8 +116,9 @@ Aucun secret n'est versionné. Le détail du renouvellement du jeton GHCR est da
 
 ## 8. Reste à compléter
 
-- URLs et accès de la production (VM Azure, réseau, Application Gateway, certificat).
-- Stockage des secrets de la production (Key Vault ou fichier d'environnement sur la VM).
+- URLs et accès de la production (instance AWS, réseau, répartiteur de charge, certificat).
+- Stockage des secrets de la production (AWS Secrets Manager ou fichier d'environnement sur l'instance).
+- Workflow `deploy-production.yml` (déclenché sur tag, environnement GitHub `production`, approbation par les relecteurs désignés, auto-approbation autorisée).
 - Activation de `etl` et `frontend` sur le staging, après un build de production du frontend.
 - Écarts entre le mock et le jeu de données historique.
 - Schéma d'ensemble des trois environnements.
