@@ -79,7 +79,7 @@ docker compose down
 - Documentation interactive : http://localhost:8000/docs
 - Santé du mock : http://localhost:8000/health
 
-Après une modification de `api/requirements.txt`, reconstruis l'image :
+Après une modification de `api/requirements.in`, reconstruis l'image :
 
 ```bash
 docker compose up -d --build api
@@ -113,13 +113,22 @@ docker compose logs -f frontend
 
 Le rendu SSR d'Angular n'accepte que les hôtes listés dans `NG_ALLOWED_HOSTS` (par défaut `localhost` et `127.0.0.1`).
 
+`frontend/Dockerfile` a deux usages. En local, `docker-compose.yml` utilise l'étape `dev` (serveur de développement). La CI construit l'étape finale `prod` : l'application compilée, servie par le serveur SSR Node sur le port 4000. C'est l'image déployée en staging et en production. Pour tester cette image en local :
+
+```bash
+docker build -t enervision-frontend-prod ./frontend
+docker run --rm -p 4100:4000 enervision-frontend-prod
+```
+
+Puis ouvre http://localhost:4100.
+
 ### 4 quater. Démarrer l'ETL
 
 `docker compose up -d` démarre aussi l'ETL (service `etl`). Le code de `etl/` est monté dans le conteneur, et Uvicorn recharge l'ETL à chaque modification. Il lit `MOCK_API_URL`, `MOCK_API_USERNAME` et `MOCK_API_PASSWORD` dans le `.env` à la racine du projet.
 
 - Documentation interactive : http://localhost:8001/docs
 
-Après une modification de `etl/requirements.txt`, reconstruis l'image :
+Après une modification de `etl/requirements.in`, reconstruis l'image :
 
 ```bash
 docker compose up -d --build etl
@@ -159,6 +168,28 @@ Le staging est déployé automatiquement sur la VM de l'école : à chaque merge
 - Version déployée : http://10.43.43.50:8000/health (titre du commit et sha court)
 
 Le détail (principe, mise en place de la VM, jeton GHCR, dépannage, retour arrière) est dans [`docs/deploiement-staging.md`](docs/deploiement-staging.md).
+
+## Dépendances Python 
+TODO - Rajouter `ml/` à la liste du script une fois le module créé.
+Chaque module Python (`api/`, `etl/`) a deux fichiers :
+
+- `requirements.in` : les dépendances directes, sans version figée. **C'est le seul fichier à modifier.**
+- `requirements.txt` : toutes les dépendances avec leur version exacte, généré à partir du `.in`. Il est utilisé par les Dockerfiles et la CI. **Ne pas le modifier à la main.**
+
+Après une modification d'un `requirements.in`, régénère les `requirements.txt` depuis WSL :
+
+```bash
+./infra/scripts/compile-requirements.sh
+```
+
+Pour mettre à jour une dépendance, ou toutes :
+
+```bash
+./infra/scripts/compile-requirements.sh --upgrade-package fastapi
+./infra/scripts/compile-requirements.sh --upgrade
+```
+
+Commite ensuite le `.in` et le `.txt` ensemble, puis reconstruis les images (`docker compose up -d --build`). Le script gère aussi les `requirements-dev.in` s'ils existent.
 
 ## Modules
 
