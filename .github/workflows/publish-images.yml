@@ -40,11 +40,26 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v3
         if: hashFiles(format('{0}/Dockerfile', matrix.module)) != ''
+      - name: Version du commit (titre et sha court)
+        id: version
+        if: hashFiles(format('{0}/Dockerfile', matrix.module)) != ''
+        # Le message du commit est une entrée non fiable : il passe par l'environnement,
+        # jamais directement dans le script. Seule la première ligne est gardée.
+        env:
+          COMMIT_MESSAGE: ${{ github.event.workflow_run.head_commit.message }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          title=$(printf '%s' "$COMMIT_MESSAGE" | head -n 1 | tr -d '\r')
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+          echo "sha=${HEAD_SHA::7}" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
         if: hashFiles(format('{0}/Dockerfile', matrix.module)) != ''
         with:
           context: ${{ matrix.module }}
           push: true
+          build-args: |
+            GIT_TITLE=${{ steps.version.outputs.title }}
+            GIT_SHA=${{ steps.version.outputs.sha }}
           tags: |
             ${{ env.IMAGE_PREFIX }}/${{ matrix.module }}:main
             ${{ env.IMAGE_PREFIX }}/${{ matrix.module }}:sha-${{ github.event.workflow_run.head_sha }}
