@@ -12,9 +12,11 @@ merge sur main -> CI verte -> publish-images.yml -> image sur GHCR -> minuteur d
 
 1. Un merge sur `main` dont la CI est verte lance `publish-images.yml`, qui construit une image par module (dossier avec un `Dockerfile`) et la publie sur GHCR : `ghcr.io/projet-piscine-eadl-enervision/enervision/<module>`, avec les tags `main` et `sha-<commit>`.
 2. Toutes les 2 minutes, `update-staging.timer` lance `infra/scripts/update-staging.sh` sur la VM : il aligne le dépôt sur `origin/main`, tire les images puis relance les conteneurs modifiés. Un merge est donc visible sur le staging environ 3 à 5 minutes après la fin de la CI.
-3. Un tag `vX.Y.Z` (créé par le workflow de release) ajoute ce tag à l'image du commit déjà validé, sans reconstruction. La production déploiera cette image.
+3. Après la recette du staging, la personne qui a recetté lance à la main le workflow `Release` en indiquant le sha affiché par `/health` (voir `CONTRIBUTING.md`). Il crée le tag `vX.Y.Z` sur ce commit, et ce tag s'ajoute à l'image du commit déjà validé, sans reconstruction. La production déploiera cette image.
 
-Seuls les modules qui ont un `Dockerfile` sont publiés. Aujourd'hui, c'est le cas de `api`, `etl` et `frontend` ; `ml` apparaîtra dès que son `Dockerfile` sera sur `main`. L'image `frontend` lance pour l'instant le serveur de développement (`ng serve`, port 4000) : un build de production reste à écrire avant d'en faire l'image du staging final.
+Seuls les modules qui ont un `Dockerfile` sont publiés. Aujourd'hui, c'est le cas de `api`, `etl` et `frontend` ; `ml` apparaîtra dès que son `Dockerfile` sera sur `main`.
+
+L'image `frontend` publiée (cible `prod` du `Dockerfile`) contient le build de production d'Angular, servi par le serveur SSR Node (port 4000). C'est la même image au staging et en production : le front appelle l'API par un chemin relatif (`/api/...`) et le serveur (`frontend/src/api-proxy.ts`) le transmet à l'adresse donnée par la variable `API_UPSTREAM`, lue au lancement du conteneur (`http://api:8000` par défaut). `NG_ALLOWED_HOSTS` est lue de la même façon : elle doit contenir l'IP ou le nom sous lequel le site est joint, sinon le rendu serveur refuse la requête. Aucune adresse d'environnement n'est donc fixée à la construction. En développement, `docker-compose.yml` utilise la cible `dev` (`ng serve`).
 
 ## Savoir ce qui est déployé
 
@@ -50,6 +52,8 @@ MOCK_API_USERNAME=-
 MOCK_API_PASSWORD=-
 # À ajouter quand les images etl et frontend sont publiées sur GHCR :
 # COMPOSE_PROFILES=apps
+# IP ou nom sous lesquels le frontend est joint (indispensable avec le profil apps) :
+# NG_ALLOWED_HOSTS=localhost,127.0.0.1,10.43.43.50
 # Environnement affiché par l'API (staging par défaut, production sur AWS) :
 # APP_ENV=staging
 # Pour figer un commit précis (retour arrière) :
@@ -59,7 +63,8 @@ MOCK_API_PASSWORD=-
 - `POSTGRES_PASSWORD` : un mot de passe généré sur la VM (`openssl rand -base64 24 | tr -d '/+='`), différent de celui du développement.
 - `MOCK_API_*` : le mock interne de l'école ne demande pas d'identifiants. Le compose exige pourtant des valeurs non vides pour toutes les variables `MOCK_API_*` (l'ETL en a besoin), d'où le `-`. Avec l'URL publique du mock (`https://api-mock.charlieandre.fr`), mettre les vrais identifiants, qui sont dans les notes Teams.
 - `COMPOSE_PROFILES=apps` active `etl` et `frontend`. Il ne faut l'ajouter qu'une fois leurs images publiées sur GHCR (vérifier avec `docker pull ghcr.io/projet-piscine-eadl-enervision/enervision/etl:main`), sinon le `pull` échoue.
-- Sur l'hôte, l'API écoute sur le port 8000 et l'ETL sur le 8001.
+- `NG_ALLOWED_HOSTS` : liste des noms ou IP sous lesquels le frontend est joint (`10.43.43.50` en staging). Sans elle, le serveur de rendu refuse les requêtes qui arrivent avec l'IP de la VM.
+- Sur l'hôte, l'API écoute sur le port 8000, l'ETL sur le 8001 et le frontend sur le 4000.
 
 ## Mise en place sur la VM (une seule fois)
 
@@ -109,8 +114,8 @@ docker ps                                           # conteneurs en cours
 | `manifest unknown` | l'image du tag demandé n'est pas (encore) publiée : vérifier la CI et `publish-images.yml` |
 | L'ancienne version tourne encore | CI ou publication non terminée, ou minuteur arrêté |
 
-Pour revenir à une version précédente, mettre `IMAGE_TAG=sha-<commit complet>` dans `staging.env` : le prochain passage du minuteur redéploie cette image. Retirer la ligne pour suivre de nouveau `main`.
+**Retour arrière.** Le staging suit `main` : la voie normale est une PR `revert` du commit fautif, que la VM déploie environ 10 minutes après le merge. En urgence, avec accès à la VM, mettre `IMAGE_TAG=sha-<commit complet>` dans `staging.env` : le prochain passage du minuteur redéploie cette image. Tant que cette ligne existe, le staging est figé (les recettes des autres portent sur une version qui ne bouge plus) et `update-staging.sh` écrit un avertissement à chaque passage dans le journal (`journalctl -u update-staging.service`). La retirer dès que le correctif est fusionné pour suivre de nouveau `main`.
 
 ## Production
 
-Déclenchée par un tag vers AWS, après validation du staging et approbation de l'environnement GitHub `production`. Le déploiement prévu passe par AWS Systems Manager (commande lancée sur l'instance, sans SSH), avec une authentification OIDC depuis GitHub Actions. Le workflow `deploy-production.yml` est écrit mais désactivé (variable de dépôt `PRODUCTION_ENABLED`) : l'infrastructure n'est pas encore créée. Sa mise en route, ses variables et le retour arrière sont décrits dans `infra/terraform/aws/README.md`.
+Déclenchée par un tag vers AWS. Le tag est posé à la main après la recette du staging (workflow `Release`, avec le sha lu dans `/health`), puis le déploiement attend l'approbation de l'environnement GitHub `production`, dont la page affiche un résumé de la version. Le déploiement prévu passe par AWS Systems Manager (commande lancée sur l'instance, sans SSH), avec une authentification OIDC depuis GitHub Actions. Le workflow `deploy-production.yml` est écrit mais désactivé (variable de dépôt `PRODUCTION_ENABLED`) : l'infrastructure n'est pas encore créée. Sa mise en route, ses variables et le retour arrière sont décrits dans `infra/terraform/aws/README.md`.

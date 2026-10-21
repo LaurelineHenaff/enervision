@@ -1,7 +1,9 @@
 # Étapes :
 # - dev   : serveur de développement Angular, utilisé par docker-compose.yml (target: dev)
 # - build : compilation de production
-# - prod  : serveur SSR Node, image publiée par la CI pour le staging et la production (étape par défaut)
+# - prod  : serveur SSR Node, qui transmet aussi /api/ à l'API (variable API_UPSTREAM, lue au
+#           lancement). Image publiée par la CI : la même pour le staging et la production
+#           (étape par défaut)
 
 FROM node:24-slim AS base
 
@@ -30,9 +32,13 @@ RUN npm run build
 
 FROM node:24-slim AS prod
 
-# NG_ALLOWED_HOSTS doit lister le nom ou l'IP de la VM en staging et en production
+# Variables lues au lancement, jamais à la construction : la même image sert en staging et en
+# production.
+# - NG_ALLOWED_HOSTS : nom ou IP sous lesquels le site est joint (VM en staging, adresse AWS en production)
+# - API_UPSTREAM : adresse de l'API vers laquelle le serveur transmet /api/ (voir src/server.ts)
 ENV NODE_ENV=production \
     NG_ALLOWED_HOSTS=localhost,127.0.0.1 \
+    API_UPSTREAM=http://api:8000 \
     PORT=4000
 
 WORKDIR /app
