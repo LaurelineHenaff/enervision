@@ -1,6 +1,6 @@
 services:
   db:
-    image: timescale/timescaledb:latest-pg16
+    image: timescale/timescaledb:2.30.2-pg16
     container_name: enervision-db
     restart: unless-stopped
     environment:
@@ -35,12 +35,25 @@ services:
       db:
         condition: service_healthy
 
+  etl:
+    build: ./etl
+    container_name: enervision-etl
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "${ETL_PORT:-8001}:8000"
+    volumes:
+      - ./etl:/app
+
   frontend:
     build: ./frontend
     container_name: enervision-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-4200}:4200"
+      - "${FRONTEND_PORT:-4000}:4000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
