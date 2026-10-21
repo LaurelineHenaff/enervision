@@ -10,7 +10,7 @@
 set -euo pipefail
 
 PYTHON_IMAGE="python:3.13-slim"
-MODULES="api etl"
+MODULES="api etl ml"
 
 root="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 
