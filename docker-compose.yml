@@ -50,7 +50,9 @@ services:
       - ./etl:/app
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: dev
     container_name: enervision-frontend
     restart: unless-stopped
     ports:

@@ -113,6 +113,15 @@ docker compose logs -f frontend
 
 Le rendu SSR d'Angular n'accepte que les hôtes listés dans `NG_ALLOWED_HOSTS` (par défaut `localhost` et `127.0.0.1`).
 
+`frontend/Dockerfile` a deux usages. En local, `docker-compose.yml` utilise l'étape `dev` (serveur de développement). La CI construit l'étape finale `prod` : l'application compilée, servie par le serveur SSR Node sur le port 4000. C'est l'image déployée en staging et en production. Pour tester cette image en local :
+
+```bash
+docker build -t enervision-frontend-prod ./frontend
+docker run --rm -p 4100:4000 enervision-frontend-prod
+```
+
+Puis ouvre http://localhost:4100.
+
 ### 4 quater. Démarrer l'ETL
 
 `docker compose up -d` démarre aussi l'ETL (service `etl`). Le code de `etl/` est monté dans le conteneur, et Uvicorn recharge l'ETL à chaque modification. Il lit `MOCK_API_URL`, `MOCK_API_USERNAME` et `MOCK_API_PASSWORD` dans le `.env` à la racine du projet.
