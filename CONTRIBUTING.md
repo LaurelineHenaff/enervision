@@ -46,7 +46,7 @@ Relire, c'est vérifier que le code répond au ticket, qu'il est testé, lisible
 **Versionnage.** Une seule version pour tout le monorepo, en [SemVer](https://semver.org/lang/fr/) : `vMAJOR.MINOR.PATCH`. Les tags ne sont posés que sur `main`.
 
 - `feat:` incrémente le MINOR, `fix:` le PATCH, un `!` après le type (`feat!:`) ou un pied `BREAKING CHANGE:` le MAJOR.
-- La release est créée automatiquement à chaque merge sur `main` qui contient au moins un `feat:` ou un `fix:` depuis le dernier tag : le workflow calcule la version, crée le tag et la GitHub Release avec ses notes. Il n'y a pas de PR de release. Les commits `docs:`, `chore:`, `ci:`, `test:`, `refactor:` et `infra:` seuls ne créent pas de release. Personne ne tague à la main.
+- La release se lance à la main, après la recette du staging, par la personne qui a recetté : GitHub > Actions > Release > Run workflow. Elle saisit le sha affiché par `version.sha` dans http://10.43.43.50:8000/health (réseau de l'école) et coche la confirmation. Le workflow vérifie que ce commit est sur `main`, que sa CI est verte et qu'il est plus récent que le dernier tag, puis calcule la version (au moins un `feat:` ou un `fix:` depuis le dernier tag), crée le tag et la GitHub Release avec ses notes. Les merges qui arrivent entre-temps n'ont aucun effet : le tag est posé sur le commit recetté. Il n'y a pas de PR de release. Les commits `docs:`, `chore:`, `ci:`, `test:`, `refactor:` et `infra:` seuls ne donnent pas de version. Une seule release s'exécute à la fois. Annoncer dans le canal de l'équipe la recette en cours (« je recette `b2e91b8` ») évite que deux personnes recettent des versions différentes.
 
 **Promotion.** On construit une fois et on promeut le même artefact, sans le reconstruire.
 

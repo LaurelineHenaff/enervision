@@ -12,7 +12,7 @@ merge sur main -> CI verte -> publish-images.yml -> image sur GHCR -> minuteur d
 
 1. Un merge sur `main` dont la CI est verte lance `publish-images.yml`, qui construit une image par module (dossier avec un `Dockerfile`) et la publie sur GHCR : `ghcr.io/projet-piscine-eadl-enervision/enervision/<module>`, avec les tags `main` et `sha-<commit>`.
 2. Toutes les 2 minutes, `update-staging.timer` lance `infra/scripts/update-staging.sh` sur la VM : il aligne le dépôt sur `origin/main`, tire les images puis relance les conteneurs modifiés. Un merge est donc visible sur le staging environ 3 à 5 minutes après la fin de la CI.
-3. Un tag `vX.Y.Z` (créé par le workflow de release) ajoute ce tag à l'image du commit déjà validé, sans reconstruction. La production déploiera cette image.
+3. Après la recette du staging, la personne qui a recetté lance à la main le workflow `Release` en indiquant le sha affiché par `/health` (voir `CONTRIBUTING.md`). Il crée le tag `vX.Y.Z` sur ce commit, et ce tag s'ajoute à l'image du commit déjà validé, sans reconstruction. La production déploiera cette image.
 
 Seuls les modules qui ont un `Dockerfile` sont publiés. Aujourd'hui, c'est le cas de `api`, `etl` et `frontend` ; `ml` apparaîtra dès que son `Dockerfile` sera sur `main`.
 
