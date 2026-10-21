@@ -7,7 +7,9 @@ Technos utilisées :
 
 - **Base de données** : PostgreSQL 16 + TimescaleDB
 - **API** : FastAPI (Python 3.13)
-- **Frontend** : Angular 22 (avec SSR)
+- **Frontend** : Angular 22 (avec SSR), Node 24
+
+Versions communes à toute la chaîne (images Docker, CI GitHub Actions, poste de développement) : **Python 3.13** pour `api`, `etl` et `ml`, **Node 24** (24.15 minimum) pour `frontend`. Toute montée de version se change aux trois endroits : `Dockerfile`, `.github/workflows/ci.yml` et ce README.
 
 ## Environnement de développement
 

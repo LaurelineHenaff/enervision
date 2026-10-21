@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: pip
           cache-dependency-path: ${{ matrix.component }}/requirements*.txt
         if: hashFiles(format('{0}/requirements.txt', matrix.component)) != ''
@@ -108,7 +108,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: hashFiles('frontend/package-lock.json') != ''
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Installer les dépendances
@@ -132,7 +132,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: hashFiles('frontend/cypress.config.*') != ''
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Cypress
