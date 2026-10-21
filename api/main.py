@@ -1,6 +1,6 @@
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 from fastapi import FastAPI, HTTPException
@@ -26,7 +26,7 @@ async def health():
     return {
         "status": "healthy",
         "environment": ENVIRONMENT,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "version": {"commit": GIT_TITLE, "sha": GIT_SHA},
     }
 
