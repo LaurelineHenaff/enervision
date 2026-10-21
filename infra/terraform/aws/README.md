@@ -20,14 +20,26 @@ terraform plan
 
 Il faut des identifiants AWS dans l'environnement (profil `aws configure`, SSO ou variables `AWS_*`). Le fichier `.terraform.lock.hcl`, créé par `terraform init`, doit être commité.
 
+## Déploiement : `deploy-production.yml`
+
+Le workflow `.github/workflows/deploy-production.yml` se déclenche sur un tag `vX.Y.Z`. Il attend l'approbation de l'environnement GitHub `production`, vérifie que les images du tag sont publiées sur GHCR, assume le rôle de déploiement par OIDC, puis lance sur l'instance (SSM Run Command) : `git checkout` du tag, `docker compose pull` et `up -d` avec `IMAGE_TAG=<tag>`, puis attente de `/health`. Il contrôle enfin que l'API annonce `production` et le commit du tag.
+
+Mise en route, dans l'ordre :
+
+1. `terraform apply`, puis relever les sorties `instance_id` et `deploy_role_arn`.
+2. Sur l'instance (par SSM Session Manager) : créer `/etc/enervision/production.env` (droits 600) avec `POSTGRES_PASSWORD`, `MOCK_API_URL`, `MOCK_API_USERNAME`, `MOCK_API_PASSWORD`, `APP_ENV=production` (et `COMPOSE_PROFILES=apps` quand `etl` et `frontend` sont prêts), puis faire `docker login ghcr.io` (même jeton `read:packages` que le staging).
+3. Dans GitHub, environnement `production` > *Environment variables* : `AWS_REGION`, `AWS_DEPLOY_ROLE_ARN` (sortie `deploy_role_arn`) et `AWS_INSTANCE_ID` (sortie `instance_id`).
+4. Dans GitHub, *Settings > Secrets and variables > Actions > Variables* (variable de dépôt) : `PRODUCTION_ENABLED` à `true`. Tant qu'elle est absente, le workflow ne fait rien.
+
+Retour arrière : rejouer (*Re-run all jobs*) l'exécution du tag précédent, après approbation. L'environnement est limité aux tags `v*`.
+
 ## À confirmer ou à décider
 
 - Région, compte AWS, VPC et sous-réseau fournis (variables `region`, `vpc_id`, `subnet_id`).
 - Type d'instance (`t3.large` est une hypothèse) et taille du disque, d'après le dimensionnement.
 - Exposition de l'API : HTTPS, répartiteur de charge, nom de domaine, IP publique. Rien n'est ouvert pour l'instant.
 - État Terraform partagé : bucket S3 (bloc `backend` commenté dans `versions.tf`).
-- Secrets de la production (`/etc/enervision/staging.env`, jeton GHCR) : à créer sur l'instance par SSM, ou via AWS Secrets Manager. Jamais dans le code.
-- Workflow `deploy-production.yml`, déclenché sur tag, avec l'environnement GitHub `production`.
+- Secrets de la production (`/etc/enervision/production.env`, jeton GHCR) : à créer sur l'instance par SSM, ou via AWS Secrets Manager. Jamais dans le code.
 - Fournisseur OIDC de GitHub : un seul est possible par compte, à désactiver (`create_github_oidc_provider = false`) s'il existe déjà.
 
 Ne jamais commiter `terraform.tfvars` ni les fichiers d'état.
