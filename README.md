@@ -93,7 +93,7 @@ L'URL du mock se règle avec `MOCK_API_URL` dans `.env`. Dans le conteneur, la b
 
 `docker compose up -d` démarre aussi le frontend Angular (service `frontend`) avec le serveur de développement. Le code de `frontend/` est monté dans le conteneur, et la page se recharge à chaque modification. Les `node_modules` restent dans le conteneur.
 
-- Application : http://localhost:4200
+- Application : http://localhost:4000
 
 Après une modification de `frontend/package.json`, reconstruis l'image :
 
@@ -109,25 +109,23 @@ docker compose logs -f frontend
 
 Le rendu SSR d'Angular n'accepte que les hôtes listés dans `NG_ALLOWED_HOSTS` (par défaut `localhost` et `127.0.0.1`).
 
-### 4 ter. Démarrer le frontend
+### 4 quater. Démarrer l'ETL
 
-`docker compose up -d` démarre aussi le frontend Angular (service `frontend`) avec le serveur de développement. Le code de `frontend/` est monté dans le conteneur, et la page se recharge à chaque modification. Les `node_modules` restent dans le conteneur.
+`docker compose up -d` démarre aussi l'ETL (service `etl`). Le code de `etl/` est monté dans le conteneur, et Uvicorn recharge l'ETL à chaque modification. Il lit `MOCK_API_URL`, `MOCK_API_USERNAME` et `MOCK_API_PASSWORD` dans le `.env` à la racine du projet.
 
-- Application : http://localhost:4200
+- Documentation interactive : http://localhost:8001/docs
 
-Après une modification de `frontend/package.json`, reconstruis l'image :
-
-```bash
-docker compose up -d --build frontend
-```
-
-Logs du frontend :
+Après une modification de `etl/requirements.txt`, reconstruis l'image :
 
 ```bash
-docker compose logs -f frontend
+docker compose up -d --build etl
 ```
 
-Le rendu SSR d'Angular n'accepte que les hôtes listés dans `NG_ALLOWED_HOSTS` (par défaut `localhost` et `127.0.0.1`).
+Logs de l'ETL :
+
+```bash
+docker compose logs -f etl
+```
 
 ### 5. Créer l'environnement Python
 
