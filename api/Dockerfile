@@ -14,6 +14,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=app:app . .
 
+# Version affichée par /health, passée par la CI à la construction
+ARG GIT_TITLE=dev
+ARG GIT_SHA=dev
+ENV GIT_TITLE=$GIT_TITLE \
+    GIT_SHA=$GIT_SHA
+
 USER app
 
 EXPOSE 8000
