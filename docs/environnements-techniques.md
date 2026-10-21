@@ -68,7 +68,8 @@ La page `/docs` du mock reste la référence pour les paramètres et les formats
 | `api` | API FastAPI (Python 3.13) | oui | `.../enervision/api` | oui, rechargement à chaud | oui, port 8000 | WIP |
 | `etl` | collecte du mock, transformation, stockage | oui | `.../enervision/etl` | oui, port 8001 | profil `apps`, port 8001, non activé | WIP |
 | `frontend` | Angular 22 (Node 24) | oui, serveur de développement | `.../enervision/frontend` | oui, port 4000 | profil `apps`, port 4000, non activé | WIP |
-| `ml` | modèle de prédiction | non | non | WIP | WIP | WIP |
+| `ml` | entraînement des modèles (tâche ponctuelle) | oui | `.../enervision/ml` | profil `ml`, à la demande : `docker compose run --rm ml` (pas lancé par `up -d`) | WIP | WIP |
+| `mlflow` | suivi des expériences et registre des modèles (`ghcr.io/mlflow/mlflow`) | image officielle | non | `v3.17.2`, port 5000 | WIP | WIP |
 
 Préfixe des images : `ghcr.io/projet-piscine-eadl-enervision/enervision`.
 

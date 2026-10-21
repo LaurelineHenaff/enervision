@@ -140,6 +140,27 @@ Logs de l'ETL :
 docker compose logs -f etl
 ```
 
+### 4 quinquies. MLflow et le module ML
+
+`docker compose up -d` démarre aussi le serveur MLflow (service `mlflow`, image officielle). Il enregistre les expériences, les runs et les modèles du module ML.
+
+- Interface MLflow : http://localhost:5000
+- Les données (base SQLite et artefacts) sont dans le volume Docker `mlflow-data` : elles survivent à `docker compose down`, mais pas à `docker compose down -v`.
+
+Le service `ml` contient le code d'entraînement. Ce n'est pas un serveur : il fait son travail puis s'arrête. Il ne démarre pas avec `docker compose up -d` (profil `ml`) : lance-le à la demande :
+
+```bash
+docker compose run --rm ml
+```
+
+Cette commande démarre au besoin la base et MLflow, attend qu'ils soient prêts, puis enregistre un run dans l'expérience `enervision`, visible dans l'interface MLflow. Pour l'instant, `ml/train.py` vérifie seulement la connexion à la base et à MLflow.
+
+Le code de `ml/` est monté dans le conteneur : une modification de `train.py` est prise en compte au lancement suivant, sans reconstruire l'image. Après une modification de `ml/requirements.in`, régénère `ml/requirements.txt`, puis reconstruis l'image :
+
+```bash
+docker compose build ml
+```
+
 ### 5. Créer l'environnement Python
 
 ```bash
@@ -214,3 +235,4 @@ Commite ensuite le `.in` et le `.txt` ensemble, puis reconstruis les images (`do
 ### Module ML
 - Se connecte à la BDD TimescaleDB
 - Création d'un modèle, entraînement avec données BDD TimescaleDB
+- Enregistre les runs et les modèles dans MLflow (service `mlflow`), où l'API récupère le modèle `champion`
