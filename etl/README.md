@@ -25,10 +25,10 @@ Avec `docker compose up -d` (voir le README à la racine), l'ETL est publié sur
 `loaders/silver.py` charge l'historique nettoyé (parquet ou CSV) dans `core.energy_reading`, et remplit `ref.site` au passage. Les tables sont créées par les migrations de l'API, appliquées au démarrage du conteneur `api`.
 
 ```bash
-docker compose exec etl python -m loaders.silver chemin/vers/conso_energie_nettoyee.parquet
+docker compose exec etl python -m loaders.silver data/silver/conso_energie_nettoyee.parquet
 ```
 
-Le chemin est relatif au dossier `etl/`, monté dans le conteneur. Le chargement est relançable : une heure déjà présente pour un site est ignorée, et le script affiche le nombre de lignes lues, insérées et déjà présentes. Sur le fichier silver complet (122 647 lignes), compter une dizaine de secondes.
+Le chemin est relatif au dossier `etl/`, monté dans le conteneur. Le fichier silver se récupère avec `dvc pull` (voir `docs/donnees-dvc.md`, branche `dvc-s3`). Le chargement est relançable : une heure déjà présente pour un site est ignorée, et le script affiche le nombre de lignes lues, insérées et déjà présentes. Sur le fichier silver complet (122 647 lignes), compter une dizaine de secondes.
 
 Correspondance des colonnes :
 

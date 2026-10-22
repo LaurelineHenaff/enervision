@@ -1,7 +1,7 @@
 """Chargement des données silver (historique nettoyé) dans core.energy_reading.
 
 Usage, depuis etl/ (ou dans le conteneur : docker compose exec etl ...) :
-    python -m loaders.silver chemin/vers/conso_energie_nettoyee.parquet
+    python -m loaders.silver data/silver/conso_energie_nettoyee.parquet
 
 Le fichier peut être un parquet ou un CSV avec les colonnes produites par le
 nettoyage (timestamp, site_id, site_type, site_name, consumption_kwh, ...).
