@@ -17,6 +17,21 @@ services:
       timeout: 3s
       retries: 10
 
+  # Applique db/migrations puis s'arrête (restart "no" : un service ponctuel relancé en boucle
+  # fausserait service_completed_successfully). Le dossier est monté par-dessus celui de l'image :
+  # une nouvelle migration est prise en compte sans reconstruire, avec docker compose run --rm migrate
+  migrate:
+    build: ./db
+    container_name: enervision-migrate
+    restart: "no"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-dev}@db:5432/${POSTGRES_DB:-enervision}?sslmode=disable
+    volumes:
+      - ./db/migrations:/db/migrations:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     build: ./api
     container_name: enervision-api
@@ -35,6 +50,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   etl:
     build: ./etl
@@ -48,6 +65,9 @@ services:
       - "${ETL_PORT:-8001}:8000"
     volumes:
       - ./etl:/app
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
   frontend:
     build:
@@ -102,6 +122,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       mlflow:
         condition: service_healthy
 
