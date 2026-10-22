@@ -15,8 +15,10 @@ python -m pip install -r requirements.txt
 python -m uvicorn main:app --reload
 ```
 
-- http://localhost:8000/health : vérifie que l'API Mock répond
+- http://localhost:8000/sites : liste des sites, lue depuis l'API Mock
 - http://localhost:8000/docs : documentation Swagger
+
+Avec `docker compose up -d` (voir le README à la racine), l'ETL est publié sur le port 8001 : http://localhost:8001/docs.
 
 ## Rôle de chaque couche
 

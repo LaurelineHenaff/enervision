@@ -1,0 +1,7 @@
+# Copier en terraform.tfvars (ignoré par Git) et renseigner les valeurs.
+region    = "eu-west-3"
+vpc_id    = "vpc-00000000000000000"
+subnet_id = "subnet-00000000000000000"
+
+# api_ingress_cidrs           = ["203.0.113.0/24"]
+# create_github_oidc_provider = false   # si le fournisseur OIDC de GitHub existe déjà dans le compte

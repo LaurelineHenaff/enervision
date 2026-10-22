@@ -1,0 +1,67 @@
+# Staging (et base de la production) : images construites par la CI et publiées sur GHCR.
+# Variables lues dans /etc/enervision/staging.env sur la VM (jamais dans le dépôt).
+#
+# La base et l'API démarrent toujours. Les autres applications sont dans le profil `apps` :
+# elles sont activées avec COMPOSE_PROFILES=apps dans staging.env, quand leur image existe sur GHCR
+# (un module n'est publié que s'il a un Dockerfile).
+# Les variables POSTGRES_PASSWORD et MOCK_API_* doivent toujours être présentes dans staging.env.
+name: enervision
+
+services:
+  db:
+    image: timescale/timescaledb:2.30.2-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-enervision}
+      POSTGRES_USER: ${POSTGRES_USER:-enervision}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans staging.env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/api:${IMAGE_TAG:-main}
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-staging}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-enervision}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-enervision}
+      MOCK_API_URL: ${MOCK_API_URL:?MOCK_API_URL manquant dans staging.env}
+      MOCK_API_USERNAME: ${MOCK_API_USERNAME:?MOCK_API_USERNAME manquant dans staging.env}
+      MOCK_API_PASSWORD: ${MOCK_API_PASSWORD:?MOCK_API_PASSWORD manquant dans staging.env}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  etl:
+    profiles: [apps]
+    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/etl:${IMAGE_TAG:-main}
+    restart: unless-stopped
+    environment:
+      MOCK_API_URL: ${MOCK_API_URL:?MOCK_API_URL manquant dans staging.env}
+      MOCK_API_USERNAME: ${MOCK_API_USERNAME:?MOCK_API_USERNAME manquant dans staging.env}
+      MOCK_API_PASSWORD: ${MOCK_API_PASSWORD:?MOCK_API_PASSWORD manquant dans staging.env}
+    ports:
+      - "8001:8000"
+
+  frontend:
+    profiles: [apps]
+    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/frontend:${IMAGE_TAG:-main}
+    restart: unless-stopped
+    environment:
+      # Adresse de l'API à laquelle le serveur transmet /api/ (lue au lancement)
+      API_UPSTREAM: http://api:8000
+      # Nom ou IP sous lesquels le site est joint (IP de la VM en staging, adresse AWS en production)
+      NG_ALLOWED_HOSTS: ${NG_ALLOWED_HOSTS:-localhost,127.0.0.1}
+    depends_on:
+      - api
+    ports:
+      - "4000:4000"
+
+volumes:
+  db_data:

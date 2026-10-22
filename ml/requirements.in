@@ -1,0 +1,3 @@
+mlflow==3.17.2
+psycopg[binary]
+python-dotenv

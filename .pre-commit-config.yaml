@@ -1,0 +1,68 @@
+# Contrôles locaux, avant le commit et avant le push. Ils reprennent ceux de la CI pour éviter d'attendre
+# le retour de la PR ; la CI reste la référence et ne dépend pas de ce fichier.
+# Installation : voir la section « Contrôles avant commit » du README (pre-commit install).
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+
+repos:
+  # Message de commit : même commitlint (19.x, comme wagoid/commitlint-github-action@v6) et même
+  # configuration (.commitlintrc.yml) que le job commit-messages de la CI.
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.22.0
+    hooks:
+      - id: commitlint
+        stages: [commit-msg]
+        additional_dependencies: ["@commitlint/config-conventional@19.8.1"]
+      # Au push : tous les commits que la branche ajoute à origin/main, y compris ceux faits sans hook.
+      - id: commitlint
+        alias: commitlint-push
+        name: commitlint (commits à pousser)
+        entry: bash infra/scripts/check-commit-messages.sh
+        stages: [pre-push]
+        additional_dependencies: ["@commitlint/config-conventional@19.8.1"]
+
+  # Nom de branche : le script que le job branch-name de la CI exécute aussi.
+  - repo: local
+    hooks:
+      - id: branch-name
+        name: nom de la branche
+        entry: bash infra/scripts/check-branch-name.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit, pre-push]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # Aucun commit direct sur main : tout passe par une pull request.
+      - id: no-commit-to-branch
+        args: [--branch, main]
+      - id: check-yaml
+      - id: check-merge-conflict
+      # Aucun secret dans Git.
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+
+  # Lint Python, comme le job python de la CI. La version doit rester celle de requirements-dev.txt
+  # (api, etl, ml) : les mettre à jour ensemble. La CI lance ruff depuis le dossier de chaque module,
+  # dont les imports locaux (par exemple api_mock dans etl) sont alors reconnus comme internes au
+  # projet : `src` reproduit ce comportement depuis la racine du dépôt.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.1
+    hooks:
+      - id: ruff-check
+        alias: ruff-api
+        name: ruff (api)
+        files: ^api/
+        args: [--config, 'src = ["api"]']
+      - id: ruff-check
+        alias: ruff-etl
+        name: ruff (etl)
+        files: ^etl/
+        args: [--config, 'src = ["etl"]']
+      - id: ruff-check
+        alias: ruff-ml
+        name: ruff (ml)
+        files: ^ml/
+        args: [--config, 'src = ["ml"]']

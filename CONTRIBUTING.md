@@ -22,12 +22,14 @@ Chaque composant garde ses tests. Les workflows de CI/CD vivent dans `.github/wo
 2. Une branche par tâche, créée depuis `main` à jour, nommée directement par son sujet, sans préfixe ni `/` : minuscules et tirets, 50 caractères maximum (ex. `endpoint-readings`, `ci-trivy`). Durée de vie visée : moins d'un jour, deux au maximum.
 3. Pull requests petites et ciblées, liées à une issue GitHub : `Closes #12` dans la description ferme l'issue au merge et déplace sa carte dans le Project. Une PR sans issue est tolérée pour une correction triviale.
 4. Une approbation minimum, donnée par quelqu'un d'autre que l'auteur, et une CI verte avant le merge. Chacun relit au moins une PR par jour.
-5. Merge en **squash**. La branche source est supprimée automatiquement au merge (réglage du dépôt « Automatically delete head branches ») ; supprimer aussi la copie locale avec `git branch -d`.
-6. Commits en [Conventional Commits](https://www.conventionalcommits.org/fr) avec un type parmi `feat`, `fix`, `docs`, `chore`, `infra`, `test`, `refactor`, `ci`. Le nom de branche, chaque commit et le titre de la PR sont vérifiés par la CI. Chacun commite avec son propre compte et son vrai nom, sur son poste.
-7. Aucun secret dans Git : variables dans un `.env` ignoré, avec un `.env.example` versionné. Les accès (API, VM, Azure) restent hors dépôt.
+5. Merge en **squash**, seule méthode autorisée sur le dépôt (réglages du dépôt : merge commit et rebase désactivés, message du squash = titre de la PR). Le titre de la PR devient donc l'unique commit sur `main` : c'est lui qui décide de la version (`feat:`, `fix:`, `!` pour une rupture), et la CI le vérifie. La branche source est supprimée automatiquement au merge (réglage « Automatically delete head branches ») ; supprimer aussi la copie locale avec `git branch -d`.
+6. Commits en [Conventional Commits](https://www.conventionalcommits.org/fr) avec un type parmi `feat`, `fix`, `docs`, `chore`, `infra`, `test`, `refactor`, `ci`. Le nom de branche, chaque commit et le titre de la PR sont vérifiés par la CI ; un hook local (`pre-commit`, voir le README) applique les mêmes contrôles avant le commit. Chacun commite avec son propre compte et son vrai nom, sur son poste.
+7. Aucun secret dans Git : variables dans un `.env` ignoré, avec un `.env.example` versionné. Les accès (API, VM, AWS) restent hors dépôt.
 8. Un conflit se résout dans la branche de la tâche (`git rebase main` ou `git merge main`), jamais en réécrivant `main`.
 
 ## Cycle d'une tâche
+
+Une seule fois par clone, avant le premier commit : installer les hooks locaux (`pre-commit install`, étape 7 du [README](README.md)).
 
 ```
 git switch main && git pull
@@ -46,18 +48,9 @@ Relire, c'est vérifier que le code répond au ticket, qu'il est testé, lisible
 **Versionnage.** Une seule version pour tout le monorepo, en [SemVer](https://semver.org/lang/fr/) : `vMAJOR.MINOR.PATCH`. Les tags ne sont posés que sur `main`.
 
 - `feat:` incrémente le MINOR, `fix:` le PATCH, un `!` après le type (`feat!:`) ou un pied `BREAKING CHANGE:` le MAJOR.
-- La release est créée automatiquement à chaque merge sur `main` qui contient au moins un `feat:` ou un `fix:` depuis le dernier tag : le workflow calcule la version, crée le tag et la GitHub Release avec ses notes. Il n'y a pas de PR de release. Les commits `docs:`, `chore:`, `ci:`, `test:`, `refactor:` et `infra:` seuls ne créent pas de release. Personne ne tague à la main.
+- Les commits `docs:`, `chore:`, `ci:`, `test:`, `refactor:` et `infra:` seuls ne donnent pas de version : il faut au moins un `feat:` ou un `fix:` depuis le dernier tag.
+- Il n'y a pas de PR de release : la version est calculée au moment où une personne lance la release, sur le commit qu'elle a recetté.
 
-**Promotion.** On construit une fois et on promeut le même artefact, sans le reconstruire.
-
-| Environnement | Déclencheur | Cible |
-|---|---|---|
-| dev | local, `docker compose` | poste de chacun |
-| staging | merge sur `main` | VM Proxmox du groupe |
-| production | tag `vX.Y.Z` | Azure |
-
-1. Le merge sur `main` construit les images Docker, les tague avec le SHA du commit et les déploie en staging après passage de la CI (tests, Trivy).
-2. Le tag `vX.Y.Z` re-tague la même image (sans la reconstruire) avec la version, puis la déploie en production. L'environnement GitHub `production` exige une approbation manuelle d'une personne autre que l'auteur.
-3. Un retour arrière se fait en redéployant le tag précédent.
+**Promotion.** On construit une fois et on promeut le même artefact, sans le reconstruire : le merge sur `main` met à jour le staging, la release ajoute le tag de version à l'image déjà recettée, et la production déploie cette image. La procédure complète (recette, release, approbation, retour arrière) est dans [`docs/mise-en-production.md`](docs/mise-en-production.md).
 
 **Modèles ML.** Dans MLflow, un modèle entraîné devient `challenger`. Il est promu `champion` (alias utilisé par `/predict` en production) seulement s'il bat le champion actuel sur les métriques de validation. La promotion est tracée dans le registre et mentionnée dans la PR ou le rapport de décision.

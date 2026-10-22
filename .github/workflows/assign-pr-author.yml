@@ -1,0 +1,25 @@
+name: "Assigner l'auteur de la PR"
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  assign:
+    # Les PR de bots (Dependabot par exemple) n'ont pas de personne à assigner.
+    if: github.event.pull_request.user.type == 'User'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - name: "Assigner l'auteur"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: gh pr edit "$PR_NUMBER" --add-assignee "$AUTHOR"

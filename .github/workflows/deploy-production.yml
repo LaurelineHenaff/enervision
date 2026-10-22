@@ -1,0 +1,230 @@
+name: Déploiement en production
+
+# Deux déclencheurs, une seule logique :
+# - push d'un tag vX.Y.Z (créé par release.yml) : mise en production d'une nouvelle version ;
+# - lancement manuel avec un tag déjà publié (Actions > Déploiement en production > Run workflow) :
+#   retour arrière vers cette version.
+# Le job de déploiement attend l'approbation de l'environnement GitHub `production`, puis déploie
+# sur l'instance AWS par Systems Manager :
+# - pas de SSH ni de secret AWS : le workflow échange son jeton OIDC contre le rôle de déploiement
+#   décrit dans infra/terraform/aws ;
+# - ce sont les images validées en staging qui sont déployées (tag de version posé par
+#   publish-images.yml sur l'image du commit), jamais une nouvelle construction.
+#
+# Désactivé tant que la variable de dépôt PRODUCTION_ENABLED n'est pas à `true` : sans cela, chaque
+# release laisserait une demande d'approbation en attente alors que l'infrastructure n'existe pas.
+#
+# Variables de l'environnement `production` (Settings > Environments), valeurs issues des sorties
+# Terraform : AWS_REGION, AWS_DEPLOY_ROLE_ARN (deploy_role_arn), AWS_INSTANCE_ID (instance_id).
+# Un lancement manuel s'exécute depuis la branche main : l'environnement `production` doit autoriser
+# les branches `main` en plus des tags `v*`.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Retour arrière : version déjà publiée vers laquelle revenir, par exemple v1.4.2 (liste sur la page Releases du dépôt)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+  id-token: write
+
+# Un seul déploiement de production à la fois (nouvelle version ou retour arrière), jamais
+# interrompu en cours de route.
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  # Ce job n'a pas d'environnement : il s'exécute avant la demande d'approbation et son résumé
+  # est visible sur la page de l'exécution par la personne qui doit approuver. Il fixe aussi la
+  # version et le commit à déployer : pour un retour arrière, github.sha est la tête de main, pas
+  # le commit du tag, donc le reste du workflow n'utilise que ces sorties.
+  resume:
+    if: vars.PRODUCTION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.cible.outputs.tag }}
+      sha: ${{ steps.cible.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Déterminer la version et le commit
+        id: cible
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          # Le nom du tag est repris dans une commande exécutée sur l'instance : on n'accepte que vX.Y.Z.
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag $TAG refusé : seuls les tags vX.Y.Z sont déployés."
+            exit 1
+          fi
+          if ! sha=$(git rev-parse --verify --quiet "refs/tags/${TAG}^{commit}"); then
+            echo "::error::Le tag $TAG n'existe pas."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$sha" origin/main; then
+            echo "::error::Le commit du tag $TAG n'est pas sur main."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Résumé pour l'approbateur
+        env:
+          TAG: ${{ steps.cible.outputs.tag }}
+          SHA: ${{ steps.cible.outputs.sha }}
+          EVENT: ${{ github.event_name }}
+          RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.cible.outputs.tag }}
+        run: |
+          {
+            if [ "$EVENT" = "workflow_dispatch" ]; then
+              echo "### Retour arrière vers $TAG"
+            else
+              echo "### Mise en production de $TAG"
+            fi
+            echo
+            echo "- Commit : \`${SHA::7}\`"
+            echo "- Notes de la version et commits inclus : $RELEASE_URL"
+            echo "- Ce sont les images déjà recettées en staging qui sont déployées, sans reconstruction."
+            echo "- Une sauvegarde de la base est faite sur l'instance avant le déploiement."
+            echo
+            if [ "$EVENT" = "workflow_dispatch" ]; then
+              echo "Avant d'approuver : vérifier que $TAG est bien la version vers laquelle l'équipe a décidé de revenir."
+            else
+              echo "Avant d'approuver : la recette a été confirmée au lancement de la release. Il reste à vérifier que ce tag est bien celui annoncé à l'équipe."
+            fi
+            echo "Après le déploiement, le workflow contrôle que \`/health\` annonce \`production\` et ce commit."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: resume
+    if: vars.PRODUCTION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Vérifier la configuration
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          AWS_INSTANCE_ID: ${{ vars.AWS_INSTANCE_ID }}
+        run: |
+          for v in AWS_REGION AWS_DEPLOY_ROLE_ARN AWS_INSTANCE_ID; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Variable $v absente de l'environnement production."
+              exit 1
+            fi
+          done
+
+      # Le contenu du tag (liste des modules, compose) est celui qui sera déployé.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resume.outputs.tag }}
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Vérifier que les images du tag sont publiées
+        env:
+          TAG: ${{ needs.resume.outputs.tag }}
+        run: |
+          # Le push du tag lance aussi publish-images.yml (job promote), qui ajoute le tag de version
+          # à l'image déjà construite pour ce commit : on attend jusqu'à 10 minutes qu'il apparaisse.
+          # Pour un retour arrière, le tag existe déjà et la boucle sort au premier essai.
+          for module in frontend api etl ml; do
+            [ -f "$module/Dockerfile" ] || continue
+            image="$IMAGE_PREFIX/$module:$TAG"
+            for i in $(seq 1 20); do
+              if docker buildx imagetools inspect "$image" >/dev/null 2>&1; then
+                echo "Image $image trouvée."
+                continue 2
+              fi
+              echo "Image $image absente, nouvel essai dans 30 s ($i/20)"
+              sleep 30
+            done
+            echo "::error::Image $image introuvable : la CI du commit taggé a-t-elle réussi ?"
+            exit 1
+          done
+
+      # Action épinglée sur le SHA de la v6.3.0 (même précaution que pour trivy-action).
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Déployer sur l'instance (SSM Run Command)
+        id: deploy
+        env:
+          TAG: ${{ needs.resume.outputs.tag }}
+          SHA: ${{ needs.resume.outputs.sha }}
+          INSTANCE_ID: ${{ vars.AWS_INSTANCE_ID }}
+        run: |
+          # Commandes exécutées sur l'instance. TAG est validé dans le job resume (vX.Y.Z).
+          # production.env (droits 600, créé à la main sur l'instance) contient POSTGRES_PASSWORD,
+          # MOCK_API_*, APP_ENV=production et, si besoin, COMPOSE_PROFILES.
+          # Avant de changer de version, la base est sauvegardée (les 5 dernières sauvegardes sont
+          # gardées) : revenir au code précédent ne défait pas les données déjà écrites.
+          script=$(cat <<EOF
+          set -euo pipefail
+          cd /opt/enervision
+          git fetch --quiet --tags origin
+          git checkout --force --quiet "$TAG"
+          export IMAGE_TAG="$TAG" COMPOSE_PROJECT_NAME=enervision
+          compose="docker compose -f docker-compose.staging.yml --env-file /etc/enervision/production.env"
+          mkdir -p /var/backups/enervision
+          if \$compose ps --status running --quiet db | grep -q .; then
+            \$compose exec -T db sh -c 'pg_dump -U "\$POSTGRES_USER" "\$POSTGRES_DB"' \
+              | gzip > "/var/backups/enervision/db-\$(date +%Y%m%d-%H%M%S)-avant-$TAG.sql.gz"
+          fi
+          ls -1t /var/backups/enervision/db-*.sql.gz 2>/dev/null | tail -n +6 | xargs -r rm --
+          \$compose pull --ignore-buildable --quiet
+          \$compose up -d --remove-orphans
+          for i in \$(seq 1 30); do
+            if curl -fsS http://localhost:8000/health; then echo; exit 0; fi
+            sleep 5
+          done
+          echo "L'API ne répond pas après le déploiement" >&2
+          exit 1
+          EOF
+          )
+
+          command_id=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "Déploiement $TAG (${SHA::7})" \
+            --parameters "$(jq -n --arg s "$script" '{commands: [$s], executionTimeout: ["600"]}')" \
+            --query Command.CommandId --output text)
+          echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
+
+          aws ssm wait command-executed --command-id "$command_id" --instance-id "$INSTANCE_ID" || true
+          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+            --query '{statut: Status, sortie: StandardOutputContent, erreurs: StandardErrorContent}' --output json \
+            | tee invocation.json
+          [ "$(jq -r .statut invocation.json)" = "Success" ] || { echo "::error::Le déploiement a échoué."; exit 1; }
+
+      - name: Contrôler la version déployée
+        env:
+          TAG: ${{ needs.resume.outputs.tag }}
+          SHA: ${{ needs.resume.outputs.sha }}
+        run: |
+          # /health doit annoncer l'environnement de production et le commit du tag.
+          sortie=$(jq -r .sortie invocation.json)
+          sha="${SHA::7}"
+          grep -q '"environment":"production"' <<<"$sortie" || { echo "::error::L'API n'annonce pas l'environnement production."; exit 1; }
+          grep -q "\"sha\":\"$sha\"" <<<"$sortie" || { echo "::error::L'API ne tourne pas sur le commit $sha."; exit 1; }
+          echo "Production à jour : $TAG ($sha)"

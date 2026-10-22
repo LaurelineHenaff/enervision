@@ -1,0 +1,8 @@
+[Unit]
+Description=Mise à jour du staging EnerVision
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/enervision/infra/scripts/update-staging.sh
