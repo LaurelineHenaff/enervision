@@ -64,7 +64,7 @@ La page `/docs` du mock reste la référence pour les paramètres et les formats
 
 | Service | Rôle | Dockerfile | Image GHCR | dev | staging | production |
 |---|---|---|---|---|---|---|
-| `db` | PostgreSQL 16 + TimescaleDB (`timescale/timescaledb`) | image officielle | non | `latest-pg16` | `2.30.2-pg16` | WIP |
+| `db` | PostgreSQL 16 + TimescaleDB (`timescale/timescaledb`) | image officielle | non | `2.30.2-pg16` | `2.30.2-pg16` | WIP |
 | `api` | API FastAPI (Python 3.13) | oui | `.../enervision/api` | oui, rechargement à chaud | oui, port 8000 | WIP |
 | `etl` | collecte du mock, transformation, stockage | oui | `.../enervision/etl` | oui, port 8001 | profil `apps`, port 8001, non activé | WIP |
 | `frontend` | Angular 22 (Node 24) | oui, serveur de développement (cible `dev`) | `.../enervision/frontend` | oui, port 4000 | profil `apps`, build de production servi par le serveur SSR Node (port 4000), non activé | WIP |

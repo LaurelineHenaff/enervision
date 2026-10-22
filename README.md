@@ -77,7 +77,8 @@ docker compose down
 `docker compose up -d` démarre aussi l'API FastAPI (service `api`), une fois la base `healthy`. Le code de `api/` est monté dans le conteneur, et Uvicorn recharge l'API à chaque modification.
 
 - Documentation interactive : http://localhost:8000/docs
-- Santé du mock : http://localhost:8000/health
+- Santé de l'API (environnement et version) : http://localhost:8000/health
+- Santé du mock : http://localhost:8000/health/mock
 
 Après une modification de `api/requirements.in`, reconstruis l'image :
 
@@ -188,7 +189,7 @@ source .venv/bin/activate
 
 ## Staging
 
-Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, l'image Docker de l'API est publiée sur GHCR, puis la VM la tire toutes les 2 minutes et relance les conteneurs.
+Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, une image Docker par module ayant un `Dockerfile` est publiée sur GHCR, puis la VM tire les images toutes les 2 minutes et relance les conteneurs. Seuls la base et l'API tournent pour l'instant : `etl` et `frontend` sont dans le profil `apps`, non activé, et `ml` n'a pas de service sur le staging.
 
 - API du staging : http://10.43.43.50:8000/docs (réseau de l'école)
 - Version déployée : http://10.43.43.50:8000/health (titre du commit et sha court)
@@ -196,8 +197,7 @@ Le staging est déployé automatiquement sur la VM de l'école : à chaque merge
 Le détail (principe, mise en place de la VM, jeton GHCR, dépannage, retour arrière) est dans [`docs/deploiement-staging.md`](docs/deploiement-staging.md).
 
 ## Dépendances Python 
-TODO - Rajouter `ml/` à la liste du script une fois le module créé.
-Chaque module Python (`api/`, `etl/`) a deux fichiers :
+Chaque module Python (`api/`, `etl/`, `ml/`) a deux fichiers :
 
 - `requirements.in` : les dépendances directes, sans version figée. **C'est le seul fichier à modifier.**
 - `requirements.txt` : toutes les dépendances avec leur version exacte, généré à partir du `.in`. Il est utilisé par les Dockerfiles et la CI. **Ne pas le modifier à la main.**
