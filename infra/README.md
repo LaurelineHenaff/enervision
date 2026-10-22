@@ -133,7 +133,7 @@ Tu dois voir le numéro du compte et ton prénom à la fin de la ligne `Arn`.
 cd infra/terraform/aws
 ```
 
-Crée ton fichier `backend.hcl` (il n'est pas dans Git) :
+Crée ton fichier `backend.hcl` (il n'est pas dans Git) ou insère le fichier déjà envoyé :
 
 ```bash
 sed -i 's/<suffixe-unique>/dreamteam2026/' backend.hcl
