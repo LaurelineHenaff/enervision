@@ -3,6 +3,7 @@ uvicorn
 httpx
 python-dotenv
 sqlalchemy[asyncio]
+alembic
 asyncpg
 pydantic-settings
 email-validator
