@@ -1,2 +1,3 @@
-/** Adresse de l'API FastAPI — le seul endroit à modifier si elle change. */
-export const API_URL = 'http://localhost:8000';
+
+/** Préfixe du proxy du front (src/api-proxy.ts), qui transmet à l'API. Jamais d'URL complète. */
+export const API_URL = '/api';

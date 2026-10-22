@@ -27,20 +27,20 @@ export class AuthService {
   }
 
   register(email: string, password: string): Observable<User> {
-    return this.http.post<User>(`${API_URL}/api/auth/register`, { email, password });
+    return this.http.post<User>(`${API_URL}/auth/register`, { email, password });
   }
 
   login(email: string, password: string): Observable<void> {
     // /login attend un formulaire (OAuth2PasswordRequestForm), pas du JSON
     const body = new HttpParams().set('username', email).set('password', password);
-    return this.http.post<Token>(`${API_URL}/api/auth/login`, body).pipe(
+    return this.http.post<Token>(`${API_URL}/auth/login`, body).pipe(
       tap((res) => this.saveToken(res.access_token)),
       map(() => undefined)
     );
   }
 
   me(): Observable<User> {
-    return this.http.get<User>(`${API_URL}/api/auth/me`);
+    return this.http.get<User>(`${API_URL}/auth/me`);
   }
 
   logout(): void {

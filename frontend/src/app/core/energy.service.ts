@@ -10,14 +10,14 @@ export class EnergyService {
   private readonly http = inject(HttpClient);
 
   getPredictions(): Observable<PeakPrediction[]> {
-    return this.http.get<PeakPrediction[]>(`${API_URL}/api/predictions`);
+    return this.http.get<PeakPrediction[]>(`${API_URL}/predictions`);
   }
 
   getHistory(days = 7): Observable<ConsumptionPoint[]> {
-    return this.http.get<ConsumptionPoint[]>(`${API_URL}/api/history`, { params: { days } });
+    return this.http.get<ConsumptionPoint[]>(`${API_URL}/history`, { params: { days } });
   }
 
   getRecommendations(): Observable<Recommendation[]> {
-    return this.http.get<Recommendation[]>(`${API_URL}/api/recommendations`);
+    return this.http.get<Recommendation[]>(`${API_URL}/recommendations`);
   }
 }
