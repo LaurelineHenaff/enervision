@@ -237,6 +237,10 @@ Commite ensuite le `.in` et le `.txt` ensemble, puis reconstruis les images (`do
 
 Les outils de lint et de test (`ruff`, `pytest`, `pytest-cov`) sont dans `requirements-dev.in` et `requirements-dev.txt`, avec le même fonctionnement. Ils ne sont pas installés dans les images Docker, seulement par la CI (et par toi si tu lances `ruff` ou `pytest` en local : `pip install -r requirements.txt -r requirements-dev.txt`). Leur version est figée, pour qu'une nouvelle règle de `ruff` ne casse pas la CI sans que personne n'ait touché au code.
 
+## Données
+
+Les fichiers de données sont versionnés avec DVC et stockés dans S3, pas dans Git. Après un `git pull`, `dvc pull` récupère les données du commit. Installation et usage : [`docs/donnees-dvc.md`](docs/donnees-dvc.md).
+
 ## Modules
 
 ### Module API

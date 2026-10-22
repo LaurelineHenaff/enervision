@@ -55,3 +55,9 @@ variable "create_github_oidc_provider" {
   type        = bool
   default     = true
 }
+
+variable "dvc_bucket_name" {
+  description = "Bucket S3 des données versionnées par DVC. Nom unique dans tout AWS : s'il est pris, le changer ici et dans .dvc/config."
+  type        = string
+  default     = "enervision-eadl-dvc"
+}

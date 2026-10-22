@@ -1,0 +1,6 @@
+[core]
+    autostage = true
+    remote = s3
+['remote "s3"']
+    url = s3://enervision-eadl-dvc/store
+    region = eu-west-3

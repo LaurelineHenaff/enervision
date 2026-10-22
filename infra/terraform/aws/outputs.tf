@@ -22,3 +22,13 @@ output "ami_id" {
   description = "Image Debian 13 retenue."
   value       = aws_instance.main.ami
 }
+
+output "dvc_bucket" {
+  description = "Bucket S3 du remote DVC (url dans .dvc/config : s3://<bucket>/store)."
+  value       = aws_s3_bucket.dvc.bucket
+}
+
+output "dvc_iam_group" {
+  description = "Groupe IAM qui donne accès au bucket DVC en lecture et en écriture."
+  value       = aws_iam_group.dvc.name
+}
