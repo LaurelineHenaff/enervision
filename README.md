@@ -187,6 +187,20 @@ source .venv/bin/activate
    - Mot de passe : `dev`
    - Base : `enervision`
 
+### 7. Activer les contrôles avant commit
+
+Le dépôt fournit des hooks [pre-commit](https://pre-commit.com) qui refusent, avant même l'envoi, ce que la CI refuserait : message de commit hors Conventional Commits (type, longueur du titre et des lignes du corps), nom de branche invalide, commit direct sur `main`, clé privée, gros fichier, YAML invalide, erreurs `ruff`. Les règles elles-mêmes sont dans [`CONTRIBUTING.md`](CONTRIBUTING.md), la configuration dans `.pre-commit-config.yaml`.
+
+```bash
+source .venv/bin/activate
+pip install pre-commit
+pre-commit install
+```
+
+`pre-commit install` met en place les hooks de commit, de message de commit et de push. Le premier commit est plus long, car les outils se téléchargent une fois. Pour tout contrôler sans commiter : `pre-commit run --all-files`.
+
+Ces hooks ne remplacent pas la CI (`git commit --no-verify` les contourne) et ne peuvent pas contrôler le titre de la PR, qui est vérifié sur GitHub. Quand la version de `ruff` change dans les `requirements-dev.txt`, change aussi celle de `.pre-commit-config.yaml`.
+
 ## Staging
 
 Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, une image Docker par module ayant un `Dockerfile` est publiée sur GHCR, puis la VM tire les images toutes les 2 minutes et relance les conteneurs. La base, l'API, l'ETL et le frontend y tournent ; `ml` n'a pas de service sur le staging.
