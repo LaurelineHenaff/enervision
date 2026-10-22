@@ -20,6 +20,30 @@ python -m uvicorn main:app --reload
 
 Avec `docker compose up -d` (voir le README à la racine), l'ETL est publié sur le port 8001 : http://localhost:8001/docs.
 
+## Charger les données silver dans la base
+
+`loaders/silver.py` charge l'historique nettoyé (parquet ou CSV) dans `core.energy_reading`, et remplit `ref.site` au passage. Les tables sont créées par les migrations de l'API, appliquées au démarrage du conteneur `api`.
+
+```bash
+docker compose exec etl python -m loaders.silver chemin/vers/conso_energie_nettoyee.parquet
+```
+
+Le chemin est relatif au dossier `etl/`, monté dans le conteneur. Le chargement est relançable : une heure déjà présente pour un site est ignorée, et le script affiche le nombre de lignes lues, insérées et déjà présentes. Sur le fichier silver complet (122 647 lignes), compter une dizaine de secondes.
+
+Correspondance des colonnes :
+
+| Silver | `core.energy_reading` |
+|---|---|
+| `timestamp` (sans fuseau, lu en UTC) | `time` |
+| `consumption_kwh` | `consumption_kwh`, et `consumption_kw` (pas d'une heure) |
+| `consumption_euros`, `temperature_celsius`, `humidity_percent`, `solar_irradiance_wm2` | mêmes noms |
+| `kwh_source` | `data_quality`, qui doit exister dans `ref.data_quality` |
+| `site_name`, `site_type` | `ref.site`, `ref.site_type` |
+
+Les colonnes calendaire (`hour`, `day_of_week`, `is_weekend`...) ne sont pas stockées : elles se recalculent depuis `time`.
+
+Tests : `DATABASE_URL=postgresql://postgres:dev@localhost:5432/enervision pytest` depuis `etl/`. Sans `DATABASE_URL`, seuls les tests sans base tournent.
+
 ## Rôle de chaque couche
 
 | Dossier | Rôle |

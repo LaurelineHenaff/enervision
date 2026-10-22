@@ -74,6 +74,21 @@ jobs:
     defaults:
       run:
         working-directory: ${{ matrix.component }}
+    # Base TimescaleDB pour les tests qui lisent ou écrivent en base (api, etl)
+    services:
+      db:
+        image: timescale/timescaledb:2.30.2-pg16
+        env:
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: enervision
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d enervision"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:ci@localhost:5432/enervision
+      SECRET_KEY: cle-de-ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -89,6 +104,14 @@ jobs:
           pip install -r requirements.txt
           # Outils de lint et de test figés dans requirements-dev.txt ; sans ce fichier (module qui n'en a pas encore), versions du jour
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; else pip install ruff pytest pytest-cov; fi
+      - name: Migrations de la base
+        if: (matrix.component == 'api' || matrix.component == 'etl') && hashFiles('api/requirements.txt') != ''
+        # Venv séparé : les dépendances de l'API ne se mélangent pas à celles du composant testé
+        working-directory: api
+        run: |
+          python -m venv /tmp/migrations
+          /tmp/migrations/bin/pip install -q -r requirements.txt
+          /tmp/migrations/bin/alembic upgrade head
       - name: Lint (ruff)
         if: hashFiles(format('{0}/requirements.txt', matrix.component)) != ''
         run: ruff check .

@@ -2,7 +2,7 @@
 
 API REST du projet, en **FastAPI** (Python 3.13), connectée à **PostgreSQL 16 + TimescaleDB** via **SQLAlchemy 2.0** en asynchrone.
 
-Elle gère l'authentification (JWT) et expose au front Angular les prédictions de pics, l'historique de consommation et les recommandations.
+Elle gère l'authentification (JWT) et expose au front Angular les sites et leurs mesures de consommation (lues dans TimescaleDB), les prédictions de pics et les recommandations.
 
 ## Démarrer
 
@@ -54,7 +54,7 @@ Lues par `app/core/config.py` (pydantic-settings). L'API refuse de démarrer si 
 ```
 api/
 ├── app/
-│   ├── main.py            # Point d'entrée : routes, CORS, création des tables
+│   ├── main.py            # Point d'entrée : routes, CORS
 │   ├── core/
 │   │   ├── config.py      # Variables d'environnement
 │   │   └── security.py    # Hachage des mots de passe, création/lecture des JWT
@@ -66,7 +66,9 @@ api/
 │   └── api/
 │       ├── deps.py        # Dépendances partagées : DbSession, CurrentUser, AdminUser
 │       └── routes/        # Un fichier par groupe de routes
+├── migrations/            # Migrations Alembic (une par évolution du schéma)
 ├── tests/
+├── alembic.ini
 ├── Dockerfile
 ├── requirements.in        # Dépendances déclarées
 └── requirements.txt       # Généré par infra/scripts/compile-requirements.sh
@@ -83,13 +85,20 @@ Les routes n'ont pas de préfixe `/api` : c'est le préfixe du proxy du front (`
 | `POST` | `/auth/register` | public | Inscription (email + mot de passe ≥ 8 caractères) |
 | `POST` | `/auth/login` | public | Connexion, renvoie un jeton JWT |
 | `GET` | `/auth/me` | connecté | Profil de l'utilisateur courant |
+| `GET` | `/sites` | connecté | Liste des sites |
+| `GET` | `/sites/{site_id}` | connecté | Détail d'un site (404 s'il est inconnu) |
+| `GET` | `/sites/{site_id}/readings?start&end&limit&offset` | connecté | Mesures horaires, de la plus ancienne à la plus récente (168 par défaut, 1 000 au plus) |
+| `GET` | `/sites/{site_id}/consumption?bucket=day&start&end` | connecté | kWh, euros, kW moyen et max, température, agrégés par `hour`, `day`, `week` (du lundi) ou `month` |
+| `GET` | `/sites/{site_id}/quality?start&end` | connecté | Nombre et part des mesures par origine (`observed`, `interpolated`, `profile`, `recovered_from_euros`) |
 | `GET` | `/predictions` | connecté | Prédictions de pics de consommation |
 | `GET` | `/history?days=7` | connecté | Historique de consommation (1 à 90 jours) |
 | `GET` | `/recommendations` | connecté | Recommandations d'optimisation |
 | `GET` | `/health` | public | État, environnement et version déployée (utilisé par le staging et la release) |
 | `GET` | `/health/mock` | public | Vérifie que l'API Mock répond (502/503 sinon) |
 
-> Les routes `predictions`, `history` et `recommendations` renvoient pour l'instant des **données d'exemple** (voir les `TODO`).
+`start` (inclus) et `end` (exclu) sont des dates ISO 8601, par exemple `2023-01-01T00:00:00Z`. Sans fuseau, elles sont lues en UTC, comme les mesures.
+
+> Les routes `predictions`, `history` et `recommendations` renvoient pour l'instant des **données d'exemple** (voir les `TODO`). Pour l'historique, utiliser `/sites/{site_id}/consumption`.
 
 ### Tester dans Swagger
 
@@ -140,13 +149,42 @@ SELECT * FROM users;
 \q                      -- quitter
 ```
 
-### Ajouter une table
+### Tables
 
-1. Créer `app/models/ma_table.py` avec une classe qui hérite de `Base` et définit `__tablename__`.
-2. L'importer dans `app/main.py` (à côté de `from app.models import user`), sinon elle n'est pas créée.
-3. Redémarrer l'API : la table est créée au démarrage.
+| Schéma | Table | Contenu |
+|---|---|---|
+| `public` | `users` | Comptes et rôles |
+| `ref` | `site_type`, `site` | Sites, remplis par le chargement des données silver (voir `etl/README.md`) |
+| `ref` | `data_quality` | Origines possibles d'une mesure, valeurs de `kwh_source` du nettoyage |
+| `core` | `energy_reading` | Mesures horaires, hypertable TimescaleDB découpée par mois, clé `(time, site_id)` |
 
-> ⚠️ `create_all` crée les tables **absentes** mais ne modifie **jamais** une table existante. Après l'ajout d'une colonne, en dev, supprimer la table (`DROP TABLE ma_table;`) pour qu'elle soit recréée. En production, on passera par des migrations **Alembic**.
+Les données d'historique se chargent avec l'ETL : `docker compose exec etl python -m loaders.silver <fichier.parquet>`.
+
+### Migrations (Alembic)
+
+Le schéma est créé par les migrations de `migrations/versions/`, appliquées à chaque démarrage du conteneur (`alembic upgrade head`, avant Uvicorn), en local comme en staging.
+
+Ajouter ou modifier une table :
+
+1. Créer ou modifier le modèle dans `app/models/`, et l'importer dans `app/models/__init__.py`.
+2. Générer la migration, puis la relire (l'autogénération ne voit pas tout, par exemple les hypertables) :
+   ```bash
+   docker compose exec api alembic revision --autogenerate -m "ajouter ma_table"
+   ```
+3. Redémarrer l'API pour l'appliquer : `docker compose restart api`.
+
+`docker compose exec api alembic check` vérifie que les modèles et la base sont alignés. Une base de dev créée avant Alembic garde sa table `users` : la première migration ne la recrée pas.
+
+## Tests
+
+Les tests utilisent la base TimescaleDB du compose (port 5432 publié sur le poste) et ses migrations. Ils créent puis suppriment leurs propres données (site `TEST_API`, comptes `test-...@example.com`). Depuis `api/`, dans un venv Python 3.13 :
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+DATABASE_URL=postgresql://postgres:dev@localhost:5432/enervision pytest
+```
+
+En CI, le job `python (api)` démarre sa propre base TimescaleDB et applique les migrations avant les tests.
 
 ## Notes techniques
 
