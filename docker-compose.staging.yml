@@ -29,6 +29,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-staging}
       DATABASE_URL: postgresql://${POSTGRES_USER:-enervision}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-enervision}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY manquant dans staging.env}
       MOCK_API_URL: ${MOCK_API_URL:?MOCK_API_URL manquant dans staging.env}
       MOCK_API_USERNAME: ${MOCK_API_USERNAME:?MOCK_API_USERNAME manquant dans staging.env}
       MOCK_API_PASSWORD: ${MOCK_API_PASSWORD:?MOCK_API_PASSWORD manquant dans staging.env}
