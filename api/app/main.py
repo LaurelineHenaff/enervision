@@ -7,7 +7,7 @@ au démarrage du conteneur, avant Uvicorn.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, health, history, predictions, recommendations
+from app.api.routes import auth, health, history, predictions, recommendations, sites
 from app.core.config import settings
 
 app = FastAPI(
@@ -26,6 +26,7 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(sites.router)
 app.include_router(predictions.router)
 app.include_router(history.router)
 app.include_router(recommendations.router)
