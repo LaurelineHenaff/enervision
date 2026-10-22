@@ -117,6 +117,10 @@ resource "aws_instance" "main" {
   tags = {
     Name = local.name
   }
+
+   lifecycle {
+    ignore_changes = [ami, user_data]
+  }
 }
 
 # Déploiement depuis GitHub Actions sans secret AWS : le workflow échange son jeton OIDC contre ce rôle.
