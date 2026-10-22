@@ -1,0 +1,20 @@
+# Mises à jour des actions GitHub utilisées par les workflows (checkout, docker/*, etc.).
+# Une PR groupée par semaine : titre « ci: bump ... », conforme à Conventional Commits, et branche
+# dependabot/*, exemptée du contrôle de nom de branche (infra/scripts/check-branch-name.sh).
+# Les actions épinglées par SHA (configure-aws-credentials) sont aussi mises à jour, à condition de
+# garder le numéro de version en commentaire à côté du SHA.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci
+    groups:
+      github-actions:
+        patterns: ["*"]
+    ignore:
+      # Épinglée volontairement sur la v0.35.0 (voir CONTRIBUTING.md) : pas de mise à jour automatique.
+      - dependency-name: "aquasecurity/trivy-action"

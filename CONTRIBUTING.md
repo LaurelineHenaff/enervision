@@ -64,3 +64,14 @@ Relire, c'est vérifier que le code répond au ticket, qu'il est testé, lisible
 **Promotion.** On construit une fois et on promeut le même artefact, sans le reconstruire : le merge sur `main` met à jour le staging, la release ajoute le tag de version à l'image déjà recettée, et la production déploie cette image. La procédure complète (recette, release, approbation, retour arrière) est dans [`docs/mise-en-production.md`](docs/mise-en-production.md).
 
 **Modèles ML.** Dans MLflow, un modèle entraîné devient `challenger`. Il est promu `champion` (alias utilisé par `/predict` en production) seulement s'il bat le champion actuel sur les métriques de validation. La promotion est tracée dans le registre et mentionnée dans la PR ou le rapport de décision.
+
+## Workflows : runners et actions
+
+- Les jobs tournent sur `ubuntu-24.04`, pas sur `ubuntu-latest`, dont la version change sans prévenir. Changer de version de runner se fait par une PR, dans tous les workflows à la fois.
+- Les actions sont référencées par version majeure (`actions/checkout@v7`), ou par SHA quand l'action est sensible (`trivy-action`, `configure-aws-credentials`), avec la version en commentaire à côté du SHA.
+- Dependabot ouvre chaque lundi une PR groupée `ci: bump ...` qui met à jour les actions. La relire comme les autres : lire les notes de version pour les ruptures, vérifier que les paramètres `with:` utilisés existent toujours, et surveiller les avertissements Node dans les runs.
+
+**Avertissements connus.**
+
+- `trivy-action` reste volontairement en **v0.35.0** (SHA `57a97c7e7821a5776cebc9bb87c984fa69cba8f1`), la version sûre retenue après l'avis CVE-2026-33634. Son `actions/cache` interne tourne encore sur Node 20 : le job `security` de la CI affiche donc un avertissement de dépréciation de Node 20. Il est connu et accepté. La v0.36.0 (SHA `ed142fd0673e97e23eac54620cfb913e5ce36c25`) embarque un `actions/cache` en Node 24 et le fait disparaître : on y passera quand l'équipe aura décidé de s'écarter de la version épinglée. Dependabot ignore cette action pour cette raison.
+- `actions/create-github-app-token` est en v3 avec l'entrée `app-id`, dépréciée au profit de `client-id` : le job de release affiche une annotation de dépréciation. `client-id` attend le Client ID de l'App GitHub (pas son identifiant numérique) dans une nouvelle variable de dépôt ; sans elle, le job retomberait sur `GITHUB_TOKEN` et les tags ne déclencheraient plus le déploiement. Le changement reste à faire, après création de la variable.
