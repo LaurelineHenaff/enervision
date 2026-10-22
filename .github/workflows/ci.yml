@@ -27,7 +27,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-      - uses: amannn/action-semantic-pull-request@v5
+      - uses: amannn/action-semantic-pull-request@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -45,7 +45,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Vérifier le nom de la branche
         env:
           BRANCH: ${{ github.head_ref }}
@@ -60,7 +60,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: wagoid/commitlint-github-action@v6
@@ -78,8 +78,8 @@ jobs:
       run:
         working-directory: ${{ matrix.component }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
           cache: pip
@@ -106,8 +106,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         if: hashFiles('frontend/package-lock.json') != ''
         with:
           node-version: 24
@@ -130,8 +130,8 @@ jobs:
     # Tests Cypress : activés dès que frontend/cypress.config.* existe.
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         if: hashFiles('frontend/cypress.config.*') != ''
         with:
           node-version: 24
@@ -139,7 +139,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Cypress
         if: hashFiles('frontend/cypress.config.*') != ''
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           working-directory: frontend
           build: npm run build
@@ -152,9 +152,9 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Trivy (dépendances, secrets, configuration IaC)
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0, référence sûre de l'avis CVE-2026-33634
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0, référence sûre de l'avis CVE-2026-33634 ; son actions/cache interne est en Node 20 (avertissement connu, voir CONTRIBUTING.md)
         with:
           scan-type: fs
           scan-ref: .
@@ -182,7 +182,7 @@ jobs:
           --health-timeout 3s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Les migrations existantes ne changent pas

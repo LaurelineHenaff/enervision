@@ -47,14 +47,14 @@ jobs:
       # Jeton de la GitHub App (variable RELEASE_APP_ID, secret RELEASE_APP_PRIVATE_KEY) :
       # un tag créé avec ce jeton déclenche les workflows de déploiement sur tag, ce que
       # GITHUB_TOKEN ne fait pas. Sans l'App, repli sur GITHUB_TOKEN.
-      - uses: actions/create-github-app-token@v2
+      - uses: actions/create-github-app-token@v3
         id: app
         if: vars.RELEASE_APP_ID != ''
         with:
           app-id: ${{ vars.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
