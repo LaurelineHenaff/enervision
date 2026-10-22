@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from app.api.deps import CurrentUser, DbSession
 from app.schemas.energy import Recommendation
 
-router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
+router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
 
 @router.get("", response_model=list[Recommendation])

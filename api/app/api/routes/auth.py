@@ -11,7 +11,7 @@ from app.models.user import User
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserRead
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)

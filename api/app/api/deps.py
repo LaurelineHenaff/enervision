@@ -14,7 +14,7 @@ from app.db.session import get_db
 from app.models.user import Role, User
 
 # tokenUrl = l'endpoint où le front récupère son jeton
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 

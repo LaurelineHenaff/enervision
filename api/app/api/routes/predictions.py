@@ -11,7 +11,7 @@ from fastapi import APIRouter
 from app.api.deps import CurrentUser, DbSession
 from app.schemas.energy import PeakPrediction
 
-router = APIRouter(prefix="/api/predictions", tags=["predictions"])
+router = APIRouter(prefix="/predictions", tags=["predictions"])
 
 
 @router.get("", response_model=list[PeakPrediction])
