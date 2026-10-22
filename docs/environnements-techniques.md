@@ -2,7 +2,7 @@
 
 Ce document décrit les environnements sur lesquels tourne EnerVision (poste de développement, staging, production), les URLs de chacun, l'API Mock fournie par l'école et les variables qui les distinguent. Les cases marquées **WIP** sont à compléter au fil de l'avancement du projet.
 
-Documents liés : [déploiement du staging](deploiement-staging.md) et [infrastructure AWS](../infra/terraform/aws/README.md).
+Documents liés : [déploiement du staging](deploiement-staging.md), [mise en production et release](mise-en-production.md) et [infrastructure AWS](../infra/terraform/aws/README.md).
 
 ## 1. Vue d'ensemble
 
@@ -10,11 +10,11 @@ Documents liés : [déploiement du staging](deploiement-staging.md) et [infrastr
 |---|---|---|---|
 | Où | poste de chaque membre (WSL2 Debian + Docker Desktop) | VM Proxmox de l'école, `10.43.43.50` (LXC Debian 13, 4 CPU, 16 Go de RAM, 64 Go) | AWS, instance EC2 Debian 13 (WIP) |
 | Compose | `docker-compose.yml` | `docker-compose.staging.yml` | WIP (même compose que le staging prévu) |
-| Déclenchement | `docker compose up -d` à la main | automatique : un minuteur de la VM tire les images GHCR toutes les 2 minutes | tag `vX.Y.Z` posé à la main (workflow `Release`, avec le sha relevé dans `/health` après la recette du staging), puis approbation de l'environnement GitHub `production` ; déploiement par AWS Systems Manager (WIP) |
+| Déclenchement | `docker compose up -d` à la main | automatique : un minuteur de la VM tire les images GHCR toutes les 2 minutes | tag `vX.Y.Z` posé à la main après la recette du staging, puis approbation de l'environnement GitHub `production` (procédure dans [`mise-en-production.md`](mise-en-production.md)) ; déploiement par AWS Systems Manager (WIP) |
 | Origine des images | construites localement (`build:`) | publiées par la CI sur GHCR (tags `main` et `sha-<commit>`) | mêmes images que le staging, promues par le tag de version, sans reconstruction |
 | `APP_ENV` | `dev` | `staging` | `production` |
 | Mock utilisé | interne ou public, au choix | interne | public (WIP) |
-| État | opérationnel | `db` et `api` opérationnels, `etl` et `frontend` non activés | WIP : rien n'est créé sur AWS |
+| État | opérationnel | `db`, `api`, `etl` et `frontend` opérationnels (`ml` sans service) | WIP : rien n'est créé sur AWS |
 
 ## 2. URLs
 
@@ -23,8 +23,8 @@ Documents liés : [déploiement du staging](deploiement-staging.md) et [infrastr
 | API, documentation | http://localhost:8000/docs | http://10.43.43.50:8000/docs | WIP |
 | API, santé et version | http://localhost:8000/health | http://10.43.43.50:8000/health | WIP |
 | API, santé du mock | http://localhost:8000/health/mock | http://10.43.43.50:8000/health/mock | WIP |
-| ETL, documentation | http://localhost:8001/docs | WIP (profil `apps` non activé) | WIP |
-| Frontend | http://localhost:4000 | WIP (profil `apps` non activé) | WIP |
+| ETL, documentation | http://localhost:8001/docs | http://10.43.43.50:8001/docs | WIP |
+| Frontend | http://localhost:4000 | http://10.43.43.50:4000 (l'API y est jointe par `/api/health`) | WIP |
 | Base de données | `localhost:5432`, base `enervision` | non exposée (réseau interne Docker de la VM) | WIP |
 
 Le staging n'est joignable que depuis le réseau de l'école. En production, l'exposition de l'API (HTTPS, répartiteur de charge, nom de domaine, IP publique) n'est pas encore décidée : aucune URL n'est donc fixée (WIP).
@@ -86,7 +86,7 @@ Le flux de données prévu : le mock alimente l'ETL, qui écrit dans la base ; l
 | `POSTGRES_PASSWORD` | mot de passe de la base | `dev` | généré sur la VM | WIP |
 | `DATABASE_URL` | connexion de l'API à la base | calculée par le compose | calculée par le compose | WIP |
 | `API_PORT`, `ETL_PORT`, `FRONTEND_PORT` | ports publiés sur l'hôte | 8000, 8001, 4000 | fixes dans le compose | WIP |
-| `COMPOSE_PROFILES` | active `etl` et `frontend` (profil `apps`) | sans objet | absent pour l'instant | WIP |
+| `COMPOSE_PROFILES` | active `etl` et `frontend` (profil `apps`) | sans objet | `apps`, dans `staging.env` | WIP |
 | `IMAGE_TAG` | tag des images à déployer (retour arrière) | sans objet | `main` par défaut | WIP |
 | `NG_ALLOWED_HOSTS` | hôtes acceptés par le frontend | `localhost,127.0.0.1` | IP de la VM, dans `staging.env` | adresse AWS (WIP) |
 | `API_UPSTREAM` | adresse de l'API à laquelle le frontend transmet `/api/` | `http://api:8000` | `http://api:8000` | `http://api:8000` (WIP) |
@@ -122,6 +122,5 @@ Aucun secret n'est versionné. Le détail du renouvellement du jeton GHCR est da
 - URLs et accès de la production (instance AWS, réseau, répartiteur de charge, certificat).
 - Stockage des secrets de la production (AWS Secrets Manager ou fichier d'environnement sur l'instance).
 - Mise en route du workflow `deploy-production.yml` (écrit, désactivé par `PRODUCTION_ENABLED` : instance AWS et variables de l'environnement `production` à créer).
-- Activation de `etl` et `frontend` sur le staging (`COMPOSE_PROFILES=apps`), une fois leurs images publiées.
 - Écarts entre le mock et le jeu de données historique.
 - Schéma d'ensemble des trois environnements.

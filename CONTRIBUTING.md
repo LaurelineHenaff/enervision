@@ -46,26 +46,9 @@ Relire, c'est vérifier que le code répond au ticket, qu'il est testé, lisible
 **Versionnage.** Une seule version pour tout le monorepo, en [SemVer](https://semver.org/lang/fr/) : `vMAJOR.MINOR.PATCH`. Les tags ne sont posés que sur `main`.
 
 - `feat:` incrémente le MINOR, `fix:` le PATCH, un `!` après le type (`feat!:`) ou un pied `BREAKING CHANGE:` le MAJOR.
-- La release se lance à la main, après la recette du staging, par la personne qui a recetté : GitHub > Actions > Release > Run workflow. Elle saisit le sha affiché par `version.sha` dans http://10.43.43.50:8000/health (réseau de l'école) et coche la confirmation. Le workflow vérifie que ce commit est sur `main`, que sa CI est verte et qu'il est plus récent que le dernier tag, puis calcule la version (au moins un `feat:` ou un `fix:` depuis le dernier tag), crée le tag et la GitHub Release avec ses notes. Les merges qui arrivent entre-temps n'ont aucun effet : le tag est posé sur le commit recetté. Il n'y a pas de PR de release. Les commits `docs:`, `chore:`, `ci:`, `test:`, `refactor:` et `infra:` seuls ne donnent pas de version. Une seule release s'exécute à la fois. Annoncer dans le canal de l'équipe la recette en cours (« je recette `b2e91b8` ») évite que deux personnes recettent des versions différentes.
+- Les commits `docs:`, `chore:`, `ci:`, `test:`, `refactor:` et `infra:` seuls ne donnent pas de version : il faut au moins un `feat:` ou un `fix:` depuis le dernier tag.
+- Il n'y a pas de PR de release : la version est calculée au moment où une personne lance la release, sur le commit qu'elle a recetté.
 
-**Promotion.** On construit une fois et on promeut le même artefact, sans le reconstruire.
-
-| Environnement | Déclencheur | Cible |
-|---|---|---|
-| dev | local, `docker compose` | poste de chacun |
-| staging | merge sur `main` | VM Proxmox du groupe |
-| production | tag `vX.Y.Z` | AWS |
-
-1. Le merge sur `main` construit les images Docker, les tague avec le SHA du commit et les déploie en staging après passage de la CI (tests, Trivy).
-2. **Recette.** Une personne teste le staging et relève le sha déployé dans `version.sha` de http://10.43.43.50:8000/health. Elle prévient l'équipe de la version qu'elle recette (« je recette `b2e91b8` ») pour que personne ne lance une autre release en parallèle.
-3. **Release.** La même personne lance GitHub > Actions > Release > Run workflow avec ce sha et la case de confirmation cochée. Le tag `vX.Y.Z` est posé sur ce commit exact et re-tague la même image (sans la reconstruire) avec la version.
-4. **Mise en production.** Le tag lance `deploy-production.yml`. L'environnement GitHub `production` exige une approbation avant le déploiement : la page de l'exécution affiche d'abord un résumé (version, commit, lien vers les notes de la release). L'auteur de la release peut approuver lui-même. Une fois déployée, l'API de production doit annoncer l'environnement `production` et le commit du tag sur `/health` ; le workflow le contrôle.
-
-**Retour arrière.**
-
-- **Staging.** Il suit `main`, donc on annule le commit fautif par une PR `revert` (le staging se met à jour environ 10 minutes après le merge). En urgence, avec accès à la VM : ajouter `IMAGE_TAG=sha-<commit complet>` dans `/etc/enervision/staging.env` ; le staging est alors figé sur cette version, et le script affiche un avertissement à chaque passage tant que la ligne existe. La retirer dès que le correctif est fusionné.
-- **Production.** GitHub > Actions > « Déploiement en production » > Run workflow, en indiquant le tag vers lequel revenir (par exemple `v1.4.2`, visible sur la page Releases). Le workflow vérifie que le tag existe et que ses images sont publiées, puis demande la même approbation que pour une mise en production, sauvegarde la base sur l'instance, redéploie ce tag et contrôle `/health`. Aucun tag n'est créé.
-- **Ensuite.** Corriger par une PR `revert` ou un correctif, puis faire une nouvelle release par la procédure normale. Revenir au code précédent ne défait pas les données écrites entre-temps : les sauvegardes sont dans `/var/backups/enervision` sur l'instance (les cinq dernières).
-- **Prérequis.** L'environnement GitHub `production` doit autoriser la branche `main` en plus des tags `v*` (Settings > Environments > production > Deployment branches and tags), car un lancement manuel s'exécute depuis `main`.
+**Promotion.** On construit une fois et on promeut le même artefact, sans le reconstruire : le merge sur `main` met à jour le staging, la release ajoute le tag de version à l'image déjà recettée, et la production déploie cette image. La procédure complète (recette, release, approbation, retour arrière) est dans [`docs/mise-en-production.md`](docs/mise-en-production.md).
 
 **Modèles ML.** Dans MLflow, un modèle entraîné devient `challenger`. Il est promu `champion` (alias utilisé par `/predict` en production) seulement s'il bat le champion actuel sur les métriques de validation. La promotion est tracée dans le registre et mentionnée dans la PR ou le rapport de décision.

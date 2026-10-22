@@ -189,12 +189,13 @@ source .venv/bin/activate
 
 ## Staging
 
-Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, une image Docker par module ayant un `Dockerfile` est publiée sur GHCR, puis la VM tire les images toutes les 2 minutes et relance les conteneurs. Seuls la base et l'API tournent pour l'instant : `etl` et `frontend` sont dans le profil `apps`, non activé, et `ml` n'a pas de service sur le staging.
+Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, une image Docker par module ayant un `Dockerfile` est publiée sur GHCR, puis la VM tire les images toutes les 2 minutes et relance les conteneurs. La base, l'API, l'ETL et le frontend y tournent ; `ml` n'a pas de service sur le staging.
 
 - API du staging : http://10.43.43.50:8000/docs (réseau de l'école)
+- Frontend du staging : http://10.43.43.50:4000
 - Version déployée : http://10.43.43.50:8000/health (titre du commit et sha court)
 
-Le détail (principe, mise en place de la VM, jeton GHCR, dépannage, retour arrière) est dans [`docs/deploiement-staging.md`](docs/deploiement-staging.md).
+Le détail (principe, mise en place de la VM, jeton GHCR, dépannage) est dans [`docs/deploiement-staging.md`](docs/deploiement-staging.md). Pour livrer une version (recette, release, production, retour arrière), voir [`docs/mise-en-production.md`](docs/mise-en-production.md).
 
 ## Dépendances Python 
 Chaque module Python (`api/`, `etl/`, `ml/`) a deux fichiers :
