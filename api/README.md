@@ -140,13 +140,15 @@ SELECT * FROM users;
 \q                      -- quitter
 ```
 
-### Ajouter une table
+### Ajouter ou modifier une table
 
-1. Créer `app/models/ma_table.py` avec une classe qui hérite de `Base` et définit `__tablename__`.
-2. L'importer dans `app/main.py` (à côté de `from app.models import user`), sinon elle n'est pas créée.
-3. Redémarrer l'API : la table est créée au démarrage.
+L'API ne crée plus de table au démarrage : le schéma ne vient que des migrations SQL de `db/migrations/` (dbmate), appliquées avant le démarrage de l'API par le service `migrate`. Il n'y a ni `create_all` ni Alembic.
 
-> ⚠️ `create_all` crée les tables **absentes** mais ne modifie **jamais** une table existante. Après l'ajout d'une colonne, en dev, supprimer la table (`DROP TABLE ma_table;`) pour qu'elle soit recréée. En production, on passera par des migrations **Alembic**.
+1. Écrire la migration, un fichier `db/migrations/AAAAMMJJHHMMSS_ma-table.sql` (règles et exemple dans [`docs/migrations-base-de-donnees.md`](../docs/migrations-base-de-donnees.md)).
+2. Créer ou modifier `app/models/ma_table.py` (classe qui hérite de `Base`, avec `__tablename__`) pour qu'il corresponde **exactement** à la migration : types, `NOT NULL`, valeurs par défaut, index.
+3. `docker compose up -d` applique la migration ; Uvicorn recharge le modèle.
+
+> ⚠️ Un modèle sans migration ne crée rien : les requêtes échouent (`relation ... does not exist`). Une colonne ajoutée dans le modèle seulement, ou dans la migration seulement, casse l'API à l'exécution. Pour changer une table existante, ajouter une nouvelle migration (`alter table ...`), sans jamais modifier une migration déjà fusionnée.
 
 ## Notes techniques
 

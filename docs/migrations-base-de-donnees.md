@@ -80,3 +80,11 @@ Une hypertable, un agrégat continu (créé avec `WITH NO DATA`) et sa politique
 - **Premier déploiement d'une nouvelle image `db`.** Le compose de `main` référence `.../db:main` dès le merge, alors que l'image n'existe qu'une fois la CI et la publication terminées. Tant qu'elle manque, le `pull` du minuteur échoue et le staging ne se met pas à jour : l'erreur disparaît seule au passage suivant, une fois l'image publiée.
 - **Retour arrière.** Le staging figé sur un `IMAGE_TAG` ancien relance l'ancienne image `db`, dont les migrations sont déjà appliquées : `migrate` ne fait rien et sort en succès. Une base plus récente que le code ne bloque donc pas le démarrage, d'où la règle de compatibilité du paragraphe 3. Un tag antérieur à l'introduction de `db` n'a ni service `migrate` ni image `db`, et le service disparaît (`--remove-orphans`).
 - **Sauvegarde.** La production fait un `pg_dump` avant chaque déploiement (voir [`mise-en-production.md`](mise-en-production.md)) : c'est la seule façon de revenir à un schéma antérieur.
+
+## 8. Modèles SQLAlchemy (API)
+
+dbmate ne connaît pas l'ORM : il exécute du SQL, et SQLAlchemy utilise ensuite les tables comme n'importe quelles tables PostgreSQL. La conséquence est que le **modèle Python et la migration se tiennent à la main** : une colonne ajoutée dans l'un seulement casse l'API à l'exécution (voir [`api/README.md`](../api/README.md), section « Ajouter ou modifier une table »).
+
+- L'API ne crée aucune table au démarrage (`create_all` est retiré) et Alembic n'est pas utilisé.
+- La migration `users` a été écrite pour produire exactement le schéma que SQLAlchemy créait avant (comparé à la sortie de `create_all` : identique). Elle est rejouable sans erreur sur les bases où l'API avait déjà créé la table (postes de développement, staging), d'où ses `if not exists`.
+- Pas de contrôle automatique modèle contre migration pour l'instant : un test d'API qui applique les migrations sur une base vide puis compare avec les modèles (`compare_metadata` d'Alembic, utilisé comme simple outil de comparaison) pourrait s'ajouter en CI si les écarts deviennent fréquents.
