@@ -20,5 +20,5 @@ output "deploy_role_arn" {
 
 output "ami_id" {
   description = "Image Debian 13 retenue."
-  value       = data.aws_ami.debian.id
+  value       = aws_instance.main.ami
 }
