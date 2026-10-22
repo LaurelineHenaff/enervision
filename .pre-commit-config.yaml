@@ -12,6 +12,13 @@ repos:
       - id: commitlint
         stages: [commit-msg]
         additional_dependencies: ["@commitlint/config-conventional@19.8.1"]
+      # Au push : tous les commits que la branche ajoute à origin/main, y compris ceux faits sans hook.
+      - id: commitlint
+        alias: commitlint-push
+        name: commitlint (commits à pousser)
+        entry: bash infra/scripts/check-commit-messages.sh
+        stages: [pre-push]
+        additional_dependencies: ["@commitlint/config-conventional@19.8.1"]
 
   # Nom de branche : le script que le job branch-name de la CI exécute aussi.
   - repo: local
