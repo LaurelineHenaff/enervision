@@ -5,7 +5,7 @@ Exemple de vraie requête à mettre plus tard :
     SELECT time_bucket('1 hour', ts) AS bucket, avg(consumption_kw)
     FROM measurements WHERE ts > now() - interval '7 days' GROUP BY bucket;
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Query
 
@@ -21,7 +21,7 @@ async def get_history(
     db: DbSession,
     days: int = Query(default=7, ge=1, le=90),
 ):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # TODO: remplacer par une requête time_bucket sur TimescaleDB
     return [
         ConsumptionPoint(

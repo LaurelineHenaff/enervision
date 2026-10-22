@@ -5,14 +5,32 @@ dans le code. pydantic-settings valide et type automatiquement.
 """
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
+    # Environnement (dev, staging, production) : défini au lancement du conteneur, pas dans
+    # l'image, car la même image est promue du staging vers la production
+    APP_ENV: str = "dev"
+
+    # Version déployée : renseignée à la construction de l'image par la CI (publish-images.yml)
+    GIT_TITLE: str = "dev"
+    GIT_SHA: str = "dev"
+
     # Base de données
     DATABASE_URL: str
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def use_async_driver(cls, url: str) -> str:
+        # Les compose (local, staging) donnent postgresql://, partagé avec le service ml ;
+        # l'API, asynchrone, a besoin du driver asyncpg
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
 
     # Sécurité JWT
     SECRET_KEY: str
@@ -21,6 +39,11 @@ class Settings(BaseSettings):
 
     # CORS
     FRONTEND_ORIGIN: str = "http://localhost:4200"
+
+    # API Mock, uniquement sondée par /health/mock (les données passent par l'ETL)
+    MOCK_API_URL: str = ""
+    MOCK_API_USERNAME: str | None = None
+    MOCK_API_PASSWORD: str | None = None
 
 
 @lru_cache
