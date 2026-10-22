@@ -4,7 +4,7 @@ Pour l'instant renvoie des données d'exemple. Quand ton modèle IA et tes
 tables TimescaleDB seront prêts, remplace le corps par une vraie requête
 (db.execute(...)) — la structure de la route ne bougera pas.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter
 
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/predictions", tags=["predictions"])
 
 @router.get("", response_model=list[PeakPrediction])
 async def get_peak_predictions(current_user: CurrentUser, db: DbSession):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # TODO: remplacer par la sortie du modèle IA + lecture TimescaleDB
     return [
         PeakPrediction(

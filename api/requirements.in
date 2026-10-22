@@ -2,3 +2,12 @@ fastapi
 uvicorn
 httpx
 python-dotenv
+sqlalchemy[asyncio]
+asyncpg
+pydantic-settings
+email-validator
+python-jose[cryptography]
+passlib[bcrypt]
+# passlib n'est plus maintenu et plante avec bcrypt >= 4.1
+bcrypt<4.1
+python-multipart

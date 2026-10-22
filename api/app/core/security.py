@@ -3,7 +3,7 @@
 On ne stocke JAMAIS un mot de passe en clair — seulement son hash bcrypt.
 Les jetons sont signés avec SECRET_KEY : impossible à forger sans la clé.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -23,7 +23,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_access_token(subject: str) -> str:
     """Crée un JWT dont le 'sub' est l'identifiant de l'utilisateur."""
-    expire = datetime.now(timezone.utc) + timedelta(
+    expire = datetime.now(UTC) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     payload = {"sub": subject, "exp": expire}

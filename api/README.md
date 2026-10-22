@@ -14,13 +14,17 @@ docker compose up -d
 ```
 
 - Documentation interactive (Swagger) : http://localhost:8000/docs
-- Santé de l'API : http://localhost:8000/health
+- Santé de l'API (environnement et version) : http://localhost:8000/health
+- Santé de l'API Mock : http://localhost:8000/health/mock
 
 > Utilise `localhost` dans le navigateur, pas `0.0.0.0`.
 
-Le dossier `api/` est monté dans le conteneur : Uvicorn recharge l'API à chaque modification. Après un changement de `requirements.txt`, reconstruis l'image :
+Le dossier `api/` est monté dans le conteneur : Uvicorn recharge l'API à chaque modification.
+
+Les dépendances se déclarent dans `requirements.in` ; `requirements.txt` est généré (versions figées), ne pas l'éditer à la main. Après un changement de dépendance :
 
 ```bash
+./infra/scripts/compile-requirements.sh
 docker compose up -d --build api
 ```
 
@@ -36,8 +40,11 @@ Lues par `app/core/config.py` (pydantic-settings). L'API refuse de démarrer si 
 
 | Variable | Obligatoire | Description |
 |---|---|---|
-| `DATABASE_URL` | oui | Fournie par `docker-compose.yml`. Doit commencer par `postgresql+asyncpg://` |
-| `SECRET_KEY` | oui | Clé de signature des JWT. Générer avec `python3 -c "import secrets; print(secrets.token_hex(32))"` |
+| `DATABASE_URL` | oui | Fournie par le compose. Un `postgresql://` est converti automatiquement en `postgresql+asyncpg://` (driver asynchrone) |
+| `SECRET_KEY` | oui | Clé de signature des JWT. Générer avec `python3 -c "import secrets; print(secrets.token_hex(32))"`. En staging, à définir dans `staging.env` |
+| `APP_ENV` | non | Environnement affiché par `/health` et `/docs` (défaut : `dev`) |
+| `GIT_TITLE`, `GIT_SHA` | non | Version affichée par `/health`, fixée par la CI à la construction de l'image |
+| `MOCK_API_URL`, `MOCK_API_USERNAME`, `MOCK_API_PASSWORD` | non | Utilisées seulement par `/health/mock` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | non | Durée de validité du jeton (défaut : `60`) |
 | `ALGORITHM` | non | Algorithme JWT (défaut : `HS256`) |
 | `FRONTEND_ORIGIN` | non | Origine autorisée par le CORS (défaut : `http://localhost:4200`) |
@@ -61,7 +68,8 @@ api/
 │       └── routes/        # Un fichier par groupe de routes
 ├── tests/
 ├── Dockerfile
-└── requirements.txt
+├── requirements.in        # Dépendances déclarées
+└── requirements.txt       # Généré par infra/scripts/compile-requirements.sh
 ```
 
 **Modèle ≠ schéma** : un *modèle* (`models/`) décrit une table en base ; un *schéma* (`schemas/`) décrit ce que l'API reçoit ou renvoie. Les séparer évite par exemple d'exposer `hashed_password`.
@@ -76,7 +84,8 @@ api/
 | `GET` | `/api/predictions` | connecté | Prédictions de pics de consommation |
 | `GET` | `/api/history?days=7` | connecté | Historique de consommation (1 à 90 jours) |
 | `GET` | `/api/recommendations` | connecté | Recommandations d'optimisation |
-| `GET` | `/health` | public | Vérifie que l'API répond |
+| `GET` | `/health` | public | État, environnement et version déployée (utilisé par le staging et la release) |
+| `GET` | `/health/mock` | public | Vérifie que l'API Mock répond (502/503 sinon) |
 
 > Les routes `predictions`, `history` et `recommendations` renvoient pour l'instant des **données d'exemple** (voir les `TODO`).
 
@@ -141,4 +150,4 @@ SELECT * FROM users;
 
 - **Asynchrone** : les routes sont en `async def` et la base est interrogée avec `await`. Ne pas oublier `await` devant les appels à `db`.
 - **Commit** : `get_db()` ne valide rien automatiquement — une route qui écrit doit appeler `await db.commit()`. En cas d'erreur, tout ce qui n'est pas commité est annulé.
-- **bcrypt est figé en `4.0.1`** dans `requirements.txt` : `passlib` n'est plus maintenu et plante avec les versions plus récentes de bcrypt.
+- **bcrypt est limité à `< 4.1`** dans `requirements.in` : `passlib` n'est plus maintenu et plante avec les versions plus récentes de bcrypt.
