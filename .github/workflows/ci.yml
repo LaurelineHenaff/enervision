@@ -9,9 +9,12 @@ on:
 permissions:
   contents: read
 
+# Une PR qui reçoit un nouveau push annule son run précédent. Sur main, chaque commit a son propre
+# groupe et n'est jamais annulé ni remplacé : sans CI verte, un commit n'a pas d'image et ne peut
+# pas être release.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   pr-title:
@@ -43,8 +46,8 @@ jobs:
         env:
           BRANCH: ${{ github.head_ref }}
         run: |
-          # release-please et dependabot créent leurs propres branches
-          if [[ "$BRANCH" == release-please--* || "$BRANCH" == dependabot/* ]]; then exit 0; fi
+          # dependabot crée ses propres branches
+          if [[ "$BRANCH" == dependabot/* ]]; then exit 0; fi
           if [[ ! "$BRANCH" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ || ${#BRANCH} -gt 50 ]]; then
             echo "::error::Nom de branche invalide : '$BRANCH'. Attendu : minuscules et tirets, sans préfixe ni slash, 50 caractères maximum (ex. endpoint-readings)."
             exit 1
