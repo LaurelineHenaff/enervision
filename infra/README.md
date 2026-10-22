@@ -136,7 +136,6 @@ cd infra/terraform/aws
 Crée ton fichier `backend.hcl` (il n'est pas dans Git) :
 
 ```bash
-cp backend.hcl.example backend.hcl
 sed -i 's/<suffixe-unique>/dreamteam2026/' backend.hcl
 cat backend.hcl     # doit afficher bucket = "enervision-tfstate-dreamteam2026"
 ```
