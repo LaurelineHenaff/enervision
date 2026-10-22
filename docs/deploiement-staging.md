@@ -15,7 +15,9 @@ merge sur main -> CI verte -> publish-images.yml -> image sur GHCR -> minuteur d
 
 La suite (recette, release, production, retour arrière) est dans [`mise-en-production.md`](mise-en-production.md).
 
-Seuls les modules qui ont un `Dockerfile` sont publiés. Aujourd'hui, c'est le cas de `api`, `etl`, `frontend` et `ml`. Seuls `api` et `ml` reçoivent la version à la construction (`GIT_TITLE` et `GIT_SHA`). `ml` n'a pas de service dans `docker-compose.staging.yml` : son image est publiée, mais rien ne la lance sur le staging.
+Seuls les modules qui ont un `Dockerfile` sont publiés. Aujourd'hui, c'est le cas de `api`, `etl`, `frontend`, `ml` et `db`. Seuls `api` et `ml` reçoivent la version à la construction (`GIT_TITLE` et `GIT_SHA`). `ml` n'a pas de service dans `docker-compose.staging.yml` : son image est publiée, mais rien ne la lance sur le staging.
+
+L'image `db` n'est pas une base : elle contient les migrations SQL et l'outil qui les applique (dbmate). Le service `migrate` du compose la lance à chaque `up`, après que la base est saine et avant `api` et `etl`, puis s'arrête. Il ne fait rien quand tout est déjà appliqué, ce qui est le cas à presque chaque passage du minuteur. Si une migration échoue, `api` et `etl` ne démarrent pas (voir [`migrations-base-de-donnees.md`](migrations-base-de-donnees.md)).
 
 L'image `frontend` publiée (cible `prod` du `Dockerfile`) contient le build de production d'Angular, servi par le serveur SSR Node (port 4000). C'est la même image au staging et en production : le front appelle l'API par un chemin relatif (`/api/...`) et le serveur (`frontend/src/api-proxy.ts`) le transmet à l'adresse donnée par la variable `API_UPSTREAM`, lue au lancement du conteneur (`http://api:8000` par défaut). `NG_ALLOWED_HOSTS` est lue de la même façon : elle doit contenir l'IP ou le nom sous lequel le site est joint, sinon le rendu serveur refuse la requête. Aucune adresse d'environnement n'est donc fixée à la construction. En développement, `docker-compose.yml` utilise la cible `dev` (`ng serve`).
 
@@ -106,6 +108,7 @@ Le jeton est stocké en clair dans `/root/.docker/config.json` (lisible par root
 systemctl list-timers update-staging.timer          # prochain passage
 journalctl -u update-staging.service -n 50          # dernier déploiement
 docker ps                                           # conteneurs en cours
+docker compose -f /opt/enervision/docker-compose.staging.yml --env-file /etc/enervision/staging.env logs migrate   # migrations de la base
 ```
 
 | Symptôme | Cause probable |
@@ -114,5 +117,7 @@ docker ps                                           # conteneurs en cours
 | `manquant dans staging.env` | variable absente ou vide dans `/etc/enervision/staging.env` |
 | `manifest unknown` | l'image du tag demandé n'est pas (encore) publiée : vérifier la CI et `publish-images.yml` |
 | L'ancienne version tourne encore | CI ou publication non terminée, ou minuteur arrêté |
+| `api` et `etl` ne démarrent pas, `migrate` est en `Exited (2)` | une migration échoue : lire le journal de `migrate`, corriger par une nouvelle migration (voir [`migrations-base-de-donnees.md`](migrations-base-de-donnees.md)) |
+| `manifest unknown` sur l'image `db`, juste après un merge | l'image `db` du commit n'est pas encore publiée : le passage suivant du minuteur suffit |
 
 Le retour arrière du staging (PR `revert`, ou version figée par `IMAGE_TAG`) et la production sont décrits dans [`mise-en-production.md`](mise-en-production.md).
