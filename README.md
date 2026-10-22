@@ -102,6 +102,8 @@ docker compose up -d
 
 Attention : `-v` supprime tous les volumes de la pile, donc les données locales de la base (`pgdata`) mais aussi les expériences MLflow (`mlflow-data`).
 
+C'est aussi le remède si ta base locale a été modifiée à la main (`psql`, outil de l'IDE) : rien ne l'empêche aujourd'hui, et elle ne correspond plus aux migrations. Un changement du schéma passe toujours par un fichier de `db/migrations/`.
+
 ### 4 bis. Démarrer l'API
 
 `docker compose up -d` démarre aussi l'API FastAPI (service `api`), une fois la base `healthy` et les migrations appliquées. Le code de `api/` est monté dans le conteneur, et Uvicorn recharge l'API à chaque modification.
