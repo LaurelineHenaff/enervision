@@ -12,7 +12,7 @@ from fastapi import APIRouter, Query
 from app.api.deps import CurrentUser, DbSession
 from app.schemas.energy import ConsumptionPoint
 
-router = APIRouter(prefix="/api/history", tags=["history"])
+router = APIRouter(prefix="/history", tags=["history"])
 
 
 @router.get("", response_model=list[ConsumptionPoint])

@@ -76,14 +76,16 @@ api/
 
 ## Routes
 
+Les routes n'ont pas de préfixe `/api` : c'est le préfixe du proxy du front (`frontend/src/api-proxy.ts`), qui le retire avant de transmettre. Le front appelle `/api/auth/login`, l'API reçoit `/auth/login`.
+
 | Méthode | Route | Accès | Description |
 |---|---|---|---|
-| `POST` | `/api/auth/register` | public | Inscription (email + mot de passe ≥ 8 caractères) |
-| `POST` | `/api/auth/login` | public | Connexion, renvoie un jeton JWT |
-| `GET` | `/api/auth/me` | connecté | Profil de l'utilisateur courant |
-| `GET` | `/api/predictions` | connecté | Prédictions de pics de consommation |
-| `GET` | `/api/history?days=7` | connecté | Historique de consommation (1 à 90 jours) |
-| `GET` | `/api/recommendations` | connecté | Recommandations d'optimisation |
+| `POST` | `/auth/register` | public | Inscription (email + mot de passe ≥ 8 caractères) |
+| `POST` | `/auth/login` | public | Connexion, renvoie un jeton JWT |
+| `GET` | `/auth/me` | connecté | Profil de l'utilisateur courant |
+| `GET` | `/predictions` | connecté | Prédictions de pics de consommation |
+| `GET` | `/history?days=7` | connecté | Historique de consommation (1 à 90 jours) |
+| `GET` | `/recommendations` | connecté | Recommandations d'optimisation |
 | `GET` | `/health` | public | État, environnement et version déployée (utilisé par le staging et la release) |
 | `GET` | `/health/mock` | public | Vérifie que l'API Mock répond (502/503 sinon) |
 
@@ -92,7 +94,7 @@ api/
 ### Tester dans Swagger
 
 1. Ouvre http://localhost:8000/docs
-2. `POST /api/auth/register` → **Try it out** → renseigne email et mot de passe → **Execute**
+2. `POST /auth/register` → **Try it out** → renseigne email et mot de passe → **Execute**
 3. **Authorize** (en haut à droite) → email dans *username*, puis mot de passe
 4. Les routes protégées répondent maintenant `200` (sinon `401`)
 
