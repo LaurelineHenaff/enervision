@@ -16,7 +16,7 @@ Ce qui est **déjà fait** par l'admin (rien à refaire) :
 
 | Quoi | Valeur |
 |---|---|
-| AWS access portal URL | `https://d-xxxxxxxxxx.awsapps.com/start` *(envoyée par Lea)* |
+| AWS access portal URL | `https://d-806769cc86.awsapps.com/start` *(envoyée par Lea)* |
 | Région | `eu-west-3` (Paris) |
 | Nom du profil AWS | `enervision` |
 | Bucket du state Terraform | `enervision-tfstate-dreamteam2026` |
