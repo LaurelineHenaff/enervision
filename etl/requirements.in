@@ -2,3 +2,7 @@ fastapi
 uvicorn
 httpx
 python-dotenv
+# Chargement des données silver dans la base (loaders/)
+pandas
+pyarrow
+psycopg[binary]
