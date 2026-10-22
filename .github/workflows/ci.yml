@@ -160,11 +160,60 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
+  migrations:
+    # Les migrations de db/migrations s'appliquent sur une base vide, deux fois de suite (la seconde
+    # ne doit rien changer), avec l'image db telle qu'elle sera publiée. Sur une PR, aucune migration
+    # déjà fusionnée ne doit être modifiée, renommée ni supprimée : dbmate ne contrôle pas
+    # les empreintes, c'est ce contrôle qui en tient lieu.
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: timescale/timescaledb:2.30.2-pg16
+        env:
+          POSTGRES_PASSWORD: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Les migrations existantes ne changent pas
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          changes=$(git diff --name-status --diff-filter=MDR "origin/$BASE_REF...HEAD" -- db/migrations)
+          if [ -n "$changes" ]; then
+            echo "$changes"
+            echo "::error::Une migration déjà fusionnée ne se modifie pas : ajouter une nouvelle migration (voir CONTRIBUTING.md)."
+            exit 1
+          fi
+      - name: Construire l'image db
+        run: docker build -t enervision-migrate db
+      - name: Appliquer les migrations (deux fois)
+        run: |
+          for _ in 1 2; do
+            docker run --rm --network host \
+              -e DATABASE_URL="postgres://postgres:ci@localhost:5432/postgres?sslmode=disable" \
+              enervision-migrate up
+          done
+      - name: Aucune migration en attente
+        run: |
+          docker run --rm --network host \
+            -e DATABASE_URL="postgres://postgres:ci@localhost:5432/postgres?sslmode=disable" \
+            enervision-migrate status | tee statut.txt
+          grep -q "Pending: 0" statut.txt
+
   # Point d'entrée unique pour la règle de protection de main :
   # seul ce job est à exiger, quels que soient les composants présents.
   ci-ok:
     if: always()
-    needs: [pr-title, branch-name, commit-messages, python, frontend, e2e, security]
+    needs: [pr-title, branch-name, commit-messages, python, frontend, e2e, security, migrations]
     runs-on: ubuntu-latest
     steps:
       - name: Vérifier les résultats
