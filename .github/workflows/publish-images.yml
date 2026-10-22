@@ -24,7 +24,14 @@ env:
 
 jobs:
   build:
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    # `branches: [main]` filtre sur le nom de la branche d'origine : une PR d'un fork dont la branche
+    # s'appelle main déclencherait ce job, qui dispose de packages: write. On exige donc un push sur
+    # ce dépôt, et non un run de pull_request.
+    if: >-
+      github.event_name == 'workflow_run'
+      && github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
