@@ -191,13 +191,16 @@ source .venv/bin/activate
 
 Le dépôt fournit des hooks [pre-commit](https://pre-commit.com) qui refusent, avant même l'envoi, ce que la CI refuserait : message de commit hors Conventional Commits (type, longueur du titre et des lignes du corps), nom de branche invalide, commit direct sur `main`, clé privée, gros fichier, YAML invalide, erreurs `ruff`. Les règles elles-mêmes sont dans [`CONTRIBUTING.md`](CONTRIBUTING.md), la configuration dans `.pre-commit-config.yaml`.
 
+À faire une fois dans chaque clone, y compris ceux qui existent déjà :
+
 ```bash
+python3 -m venv .venv      # seulement si l'étape 5 n'a pas créé .venv
 source .venv/bin/activate
 pip install pre-commit
 pre-commit install
 ```
 
-`pre-commit install` met en place les hooks de commit, de message de commit et de push. Le premier commit est plus long, car les outils se téléchargent une fois. Pour tout contrôler sans commiter : `pre-commit run --all-files`.
+`pre-commit install` met en place les hooks de commit, de message de commit et de push. Le premier commit est plus long, car les outils se téléchargent une fois. Les hooks fonctionnent ensuite sans activer l'environnement. Au `git push`, ils relisent aussi le nom de la branche et les messages de tous les commits que ta branche ajoute à `origin/main` (fais un `git fetch` avant si `origin/main` est ancien), ce qui rattrape les commits faits sans hook. Pour tout contrôler sans commiter : `pre-commit run --all-files`.
 
 Ces hooks ne remplacent pas la CI (`git commit --no-verify` les contourne) et ne peuvent pas contrôler le titre de la PR, qui est vérifié sur GitHub. Quand la version de `ruff` change dans les `requirements-dev.txt`, change aussi celle de `.pre-commit-config.yaml`.
 

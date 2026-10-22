@@ -29,6 +29,8 @@ Chaque composant garde ses tests. Les workflows de CI/CD vivent dans `.github/wo
 
 ## Cycle d'une tâche
 
+Une seule fois par clone, avant le premier commit : installer les hooks locaux (`pre-commit install`, étape 7 du [README](README.md)).
+
 ```
 git switch main && git pull
 git switch -c ma-tache
