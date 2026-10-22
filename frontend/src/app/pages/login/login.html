@@ -1,0 +1,53 @@
+<main class="flex min-h-screen items-center justify-center bg-slate-100 p-4">
+  <form
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    class="w-full max-w-sm space-y-4 rounded-xl bg-white p-8 shadow"
+  >
+    <h1 class="text-2xl font-semibold text-slate-800">
+      {{ mode() === 'login' ? 'Connexion' : 'Créer un compte' }}
+    </h1>
+
+    <label class="block">
+      <span class="text-sm text-slate-600">Email</span>
+      <input
+        type="email"
+        formControlName="email"
+        autocomplete="email"
+        class="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+      />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <span class="text-xs text-red-600">Email invalide.</span>
+      }
+    </label>
+
+    <label class="block">
+      <span class="text-sm text-slate-600">Mot de passe</span>
+      <input
+        type="password"
+        formControlName="password"
+        [attr.autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+        class="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+      />
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <span class="text-xs text-red-600">8 caractères minimum.</span>
+      }
+    </label>
+
+    @if (error()) {
+      <p class="rounded bg-red-50 p-2 text-sm text-red-700">{{ error() }}</p>
+    }
+
+    <button
+      type="submit"
+      [disabled]="loading()"
+      class="w-full rounded bg-emerald-600 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+    >
+      {{ loading() ? 'Patiente…' : mode() === 'login' ? 'Se connecter' : "S'inscrire" }}
+    </button>
+
+    <button type="button" (click)="toggleMode()" class="w-full text-sm text-emerald-700 hover:underline">
+      {{ mode() === 'login' ? 'Pas de compte ? Inscris-toi' : 'Déjà un compte ? Connecte-toi' }}
+    </button>
+  </form>
+</main>
