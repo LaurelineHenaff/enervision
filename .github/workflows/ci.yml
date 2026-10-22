@@ -1,5 +1,8 @@
 name: CI
 
+# Les jobs tournent sur ubuntu-24.04 et non ubuntu-latest, qui migre vers Ubuntu 26.04 :
+# changer de version de runner se fait volontairement, par une PR, dans tous les workflows.
+
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
@@ -20,7 +23,7 @@ jobs:
   pr-title:
     # Le titre de la PR devient le message du squash : il doit suivre Conventional Commits.
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: read
     steps:
@@ -40,7 +43,7 @@ jobs:
 
   branch-name:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Vérifier le nom de la branche
@@ -52,7 +55,7 @@ jobs:
   commit-messages:
     # Vérifie chaque commit de la PR, pas seulement le titre.
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: read
@@ -66,7 +69,7 @@ jobs:
 
   python:
     name: python (${{ matrix.component }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -98,7 +101,7 @@ jobs:
         run: pytest --cov=. --cov-report=term-missing || [ $? -eq 5 ]
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -125,7 +128,7 @@ jobs:
 
   e2e:
     # Tests Cypress : activés dès que frontend/cypress.config.* existe.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -144,7 +147,7 @@ jobs:
           wait-on: "http://localhost:4173"
 
   security:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       security-events: write
@@ -165,7 +168,7 @@ jobs:
     # ne doit rien changer), avec l'image db telle qu'elle sera publiée. Sur une PR, aucune migration
     # déjà fusionnée ne doit être modifiée, renommée ni supprimée : dbmate ne contrôle pas
     # les empreintes, c'est ce contrôle qui en tient lieu.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       db:
         image: timescale/timescaledb:2.30.2-pg16
@@ -214,7 +217,7 @@ jobs:
   ci-ok:
     if: always()
     needs: [pr-title, branch-name, commit-messages, python, frontend, e2e, security, migrations]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Vérifier les résultats
         run: |

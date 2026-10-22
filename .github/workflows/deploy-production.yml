@@ -50,7 +50,7 @@ jobs:
   # le commit du tag, donc le reste du workflow n'utilise que ces sorties.
   resume:
     if: vars.PRODUCTION_ENABLED == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       tag: ${{ steps.cible.outputs.tag }}
       sha: ${{ steps.cible.outputs.sha }}
@@ -111,7 +111,7 @@ jobs:
   deploy:
     needs: resume
     if: vars.PRODUCTION_ENABLED == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: production
     steps:

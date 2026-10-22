@@ -11,7 +11,7 @@ jobs:
   assign:
     # Les PR de bots (Dependabot par exemple) n'ont pas de personne à assigner.
     if: github.event.pull_request.user.type == 'User'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
       issues: write
