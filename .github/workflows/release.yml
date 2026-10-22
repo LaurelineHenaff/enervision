@@ -119,9 +119,9 @@ jobs:
           bodies=$(git log "$range" --format='%b')
 
           # Conventional Commits : `!` ou BREAKING CHANGE = majeure, feat = mineure, fix = correctif.
-          if grep -Eq '^[a-z]+(\([^)]*\))?!:' <<<"$subjects" || grep -q 'BREAKING CHANGE' <<<"$bodies"; then bump=major
-          elif grep -Eq '^feat(\([^)]*\))?:' <<<"$subjects"; then bump=minor
-          elif grep -Eq '^fix(\([^)]*\))?:' <<<"$subjects"; then bump=patch
+          if grep -Eq '^[a-z]+(\([^)]*\))?!:' <<<"$subjects" || grep -q 'BREAKING CHANGE' <<<"$bodies"; then bump="major"
+          elif grep -Eq '^feat(\([^)]*\))?:' <<<"$subjects"; then bump="minor"
+          elif grep -Eq '^fix(\([^)]*\))?:' <<<"$subjects"; then bump="patch"
           else
             echo "::error::Aucun commit feat ou fix entre $last et ${FULL_SHA::7} : rien à publier."
             exit 1

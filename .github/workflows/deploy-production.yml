@@ -143,8 +143,9 @@ jobs:
         env:
           TAG: ${{ needs.resume.outputs.tag }}
         run: |
-          # publish-images.yml pose le tag de version sur l'image dès que la CI du commit est verte :
-          # on attend jusqu'à 10 minutes qu'il apparaisse.
+          # Le push du tag lance aussi publish-images.yml (job promote), qui ajoute le tag de version
+          # à l'image déjà construite pour ce commit : on attend jusqu'à 10 minutes qu'il apparaisse.
+          # Pour un retour arrière, le tag existe déjà et la boucle sort au premier essai.
           for module in frontend api etl ml; do
             [ -f "$module/Dockerfile" ] || continue
             image="$IMAGE_PREFIX/$module:$TAG"

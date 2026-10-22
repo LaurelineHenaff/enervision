@@ -187,14 +187,32 @@ source .venv/bin/activate
    - Mot de passe : `dev`
    - Base : `enervision`
 
+### 7. Activer les contrôles avant commit
+
+Le dépôt fournit des hooks [pre-commit](https://pre-commit.com) qui refusent, avant même l'envoi, ce que la CI refuserait : message de commit hors Conventional Commits (type, longueur du titre et des lignes du corps), nom de branche invalide, commit direct sur `main`, clé privée, gros fichier, YAML invalide, erreurs `ruff`. Les règles elles-mêmes sont dans [`CONTRIBUTING.md`](CONTRIBUTING.md), la configuration dans `.pre-commit-config.yaml`.
+
+À faire une fois dans chaque clone, y compris ceux qui existent déjà :
+
+```bash
+python3 -m venv .venv      # seulement si l'étape 5 n'a pas créé .venv
+source .venv/bin/activate
+pip install pre-commit
+pre-commit install
+```
+
+`pre-commit install` met en place les hooks de commit, de message de commit et de push. Le premier commit est plus long, car les outils se téléchargent une fois. Les hooks fonctionnent ensuite sans activer l'environnement. Au `git push`, ils relisent aussi le nom de la branche et les messages de tous les commits que ta branche ajoute à `origin/main` (fais un `git fetch` avant si `origin/main` est ancien), ce qui rattrape les commits faits sans hook. Pour tout contrôler sans commiter : `pre-commit run --all-files`.
+
+Ces hooks ne remplacent pas la CI (`git commit --no-verify` les contourne) et ne peuvent pas contrôler le titre de la PR, qui est vérifié sur GitHub. Quand la version de `ruff` change dans les `requirements-dev.txt`, change aussi celle de `.pre-commit-config.yaml`.
+
 ## Staging
 
-Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, une image Docker par module ayant un `Dockerfile` est publiée sur GHCR, puis la VM tire les images toutes les 2 minutes et relance les conteneurs. Seuls la base et l'API tournent pour l'instant : `etl` et `frontend` sont dans le profil `apps`, non activé, et `ml` n'a pas de service sur le staging.
+Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, une image Docker par module ayant un `Dockerfile` est publiée sur GHCR, puis la VM tire les images toutes les 2 minutes et relance les conteneurs. La base, l'API, l'ETL et le frontend y tournent ; `ml` n'a pas de service sur le staging.
 
 - API du staging : http://10.43.43.50:8000/docs (réseau de l'école)
+- Frontend du staging : http://10.43.43.50:4000
 - Version déployée : http://10.43.43.50:8000/health (titre du commit et sha court)
 
-Le détail (principe, mise en place de la VM, jeton GHCR, dépannage, retour arrière) est dans [`docs/deploiement-staging.md`](docs/deploiement-staging.md).
+Le détail (principe, mise en place de la VM, jeton GHCR, dépannage) est dans [`docs/deploiement-staging.md`](docs/deploiement-staging.md). Pour livrer une version (recette, release, production, retour arrière), voir [`docs/mise-en-production.md`](docs/mise-en-production.md).
 
 ## Dépendances Python 
 Chaque module Python (`api/`, `etl/`, `ml/`) a deux fichiers :
@@ -215,7 +233,9 @@ Pour mettre à jour une dépendance, ou toutes :
 ./infra/scripts/compile-requirements.sh --upgrade
 ```
 
-Commite ensuite le `.in` et le `.txt` ensemble, puis reconstruis les images (`docker compose up -d --build`). Le script gère aussi les `requirements-dev.in` s'ils existent.
+Commite ensuite le `.in` et le `.txt` ensemble, puis reconstruis les images (`docker compose up -d --build`).
+
+Les outils de lint et de test (`ruff`, `pytest`, `pytest-cov`) sont dans `requirements-dev.in` et `requirements-dev.txt`, avec le même fonctionnement. Ils ne sont pas installés dans les images Docker, seulement par la CI (et par toi si tu lances `ruff` ou `pytest` en local : `pip install -r requirements.txt -r requirements-dev.txt`). Leur version est figée, pour qu'une nouvelle règle de `ruff` ne casse pas la CI sans que personne n'ait touché au code.
 
 ## Modules
 
