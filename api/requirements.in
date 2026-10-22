@@ -9,5 +9,5 @@ email-validator
 python-jose[cryptography]
 passlib[bcrypt]
 # passlib n'est plus maintenu et plante avec bcrypt >= 4.1
-bcrypt<4.1
+bcrypt
 python-multipart
