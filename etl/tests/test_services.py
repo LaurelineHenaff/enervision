@@ -217,3 +217,64 @@ def test_client_base_url_et_delai():
     client = mock_client()
     assert str(client.base_url).startswith("http://mock.test/api/v1")
     assert client.timeout.read == TIMEOUT_SECONDS
+
+
+async def test_reponse_brute_conservee_avec_statut_et_reception(mock_api):
+    from mock_client.client import fetch_raw
+
+    requetes = mock_api(lambda request: httpx2.Response(200, json=[{"site_id": "SITE001"}]))
+    brute = await fetch_raw("/readings", {"site_id": "SITE001", "limit": 5})
+
+    assert brute.endpoint == "/api/v1/readings"
+    assert brute.params == {"site_id": "SITE001", "limit": "5"}
+    assert brute.http_status == 200
+    assert brute.payload == [{"site_id": "SITE001"}]
+    assert brute.fetched_at.tzinfo is not None and brute.fetched_at.utcoffset() == timedelta(0)
+    assert len(requetes) == 1
+
+
+async def test_reponse_brute_garde_les_echecs_sans_lever(mock_api):
+    from mock_client.client import fetch_raw
+
+    def handler(request):
+        if request.url.path.endswith("/sites/SITE999"):
+            return httpx2.Response(404, json={"detail": "inconnu"})
+        return httpx2.Response(502, text="<html>erreur</html>")
+
+    mock_api(handler)
+    inconnu = await fetch_raw("/sites/SITE999")
+    assert (inconnu.http_status, inconnu.payload) == (404, {"detail": "inconnu"})
+    passerelle = await fetch_raw("/sites")
+    assert (passerelle.http_status, passerelle.payload) == (502, None)
+
+
+async def test_reponse_brute_propage_les_erreurs_reseau(mock_api):
+    from mock_client.client import fetch_raw
+
+    def handler(request):
+        raise httpx2.ConnectError("connexion refusée", request=request)
+
+    mock_api(handler)
+    with pytest.raises(httpx2.RequestError):
+        await fetch_raw("/sites")
+
+
+def test_horodatages_du_mock_ramenes_en_utc():
+    from mock_client.schemas.reading import Reading
+
+    sans_fuseau = Reading.model_validate({**READING, "timestamp": "2026-10-23T12:50:25.646645"})
+    en_z = Reading.model_validate({**READING, "timestamp": "2026-10-23T12:50:25.646645Z"})
+    paris = Reading.model_validate({**READING, "timestamp": "2026-10-23T14:50:25.646645+02:00"})
+    assert sans_fuseau.timestamp == en_z.timestamp == paris.timestamp
+    assert sans_fuseau.timestamp.utcoffset() == timedelta(0)
+
+
+def test_mesure_null_reasons_vide_ou_nul_et_qualite_obligatoire():
+    from mock_client.schemas.reading import Reading
+
+    assert Reading.model_validate({**READING, "null_reasons": None}).null_reasons == []
+    assert Reading.model_validate({k: v for k, v in READING.items() if k != "null_reasons"}).null_reasons == []
+    with pytest.raises(ValidationError):
+        Reading.model_validate({**READING, "data_quality": None})
+    with pytest.raises(ValidationError):
+        Reading.model_validate({**READING, "data_quality": "inconnue"})

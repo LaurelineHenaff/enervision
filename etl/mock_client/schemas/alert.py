@@ -1,11 +1,11 @@
-from datetime import datetime
-
 from pydantic import BaseModel
+
+from mock_client.schemas.types import UtcDatetime
 
 
 class Alert(BaseModel):
     alert_id: str
-    timestamp: datetime
+    timestamp: UtcDatetime
     site_id: str
     severity: str
     type: str

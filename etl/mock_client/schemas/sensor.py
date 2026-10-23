@@ -1,12 +1,13 @@
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel
 
+from mock_client.schemas.types import UtcDatetime
+
 
 class Sensor(BaseModel):
     status: Literal["ok", "failing"]
-    failing_until: datetime | None = None
+    failing_until: UtcDatetime | None = None
 
 
 class SiteSensors(BaseModel):

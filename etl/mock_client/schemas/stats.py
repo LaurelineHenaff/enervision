@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel
+
+from mock_client.schemas.types import UtcDatetime
 
 
 class SiteStat(BaseModel):
@@ -20,7 +20,7 @@ class StatsSummary(BaseModel):
     donnée incomplète.
     """
 
-    timestamp: datetime
+    timestamp: UtcDatetime
     total_sites: int
     total_consumption_kw: float
     total_capacity_kw: float

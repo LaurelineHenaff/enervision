@@ -38,9 +38,9 @@ Pile complète : `docker compose up -d` à la racine, puis `docker ps` doit mont
 
 ## Organisation
 
-- `mock_client/client.py` : client HTTP unique (URL, authentification facultative, délai).
+- `mock_client/client.py` : client HTTP unique (URL, authentification facultative, délai). `fetch_raw` garde la réponse telle que reçue (statut, paramètres, heure de réception, JSON), échecs compris, pour `raw.api_response`.
 - `mock_client/services/` : une fonction par endpoint du mock. Elles lèvent `httpx2.HTTPStatusError` ou `httpx2.RequestError`, à l'appelant de décider. Les horodatages envoyés doivent porter un fuseau (convertis en UTC).
-- `mock_client/schemas/` : réponses du mock, vérifiées sur ses réponses réelles.
+- `mock_client/schemas/` : réponses du mock, vérifiées sur ses réponses réelles et alignées sur les tables de la base. Horodatages en UTC (sans fuseau = UTC), `null_reasons` vide plutôt que nul, `data_quality` obligatoire.
 - `pipeline/cleaning.py` : règles de remplissage des manquants, fonctions pures testées sans fichier.
 - `pipeline/metadata.py` : anomalies étiquetées et contrôle des totaux, de la période et de la fréquence.
 - `pipeline/timestamps.py` : horodatages ramenés en UTC.
