@@ -14,7 +14,7 @@ anyio==4.15.1
     #   starlette
 asyncpg==0.32.0
     # via -r api/requirements.in
-bcrypt==5.0.0
+bcrypt==4.0.1
     # via
     #   -r api/requirements.in
     #   passlib
