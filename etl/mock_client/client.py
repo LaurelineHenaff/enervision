@@ -6,7 +6,7 @@ soient réglés à un seul endroit. Les erreurs HTTP (httpx2.HTTPStatusError) et
 """
 import httpx2
 
-from api_mock import config
+from mock_client import config
 
 TIMEOUT_SECONDS = 10.0
 

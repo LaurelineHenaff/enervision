@@ -1,4 +1,4 @@
-from api_mock.client import post_json
+from mock_client.client import post_json
 
 DURATION_MAX_MINUTES = 240
 

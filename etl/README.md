@@ -24,9 +24,9 @@ Avec `docker compose up -d` (README à la racine), l'ETL est publié sur http://
 
 | Dossier | Rôle |
 |---|---|
-| `api_mock/client.py` | Client HTTP unique : URL de base, authentification facultative, délai d'attente. |
-| `api_mock/services/` | Une fonction par endpoint du mock (sites, relevés, alertes, capteurs, synthèse, simulation). |
-| `api_mock/schemas/` | Modèles Pydantic des réponses du mock, vérifiés sur ses réponses réelles. |
+| `mock_client/client.py` | Client HTTP unique : URL de base, authentification facultative, délai d'attente. |
+| `mock_client/services/` | Une fonction par endpoint du mock (sites, relevés, alertes, capteurs, synthèse, simulation). |
+| `mock_client/schemas/` | Modèles Pydantic des réponses du mock, vérifiés sur ses réponses réelles. |
 | `pipeline/clean_history.py` | Nettoyage de l'historique fourni par l'école (voir ci-dessous). |
 | `pipeline/provided_files/` | Fichiers fournis, suivis avec DVC (jamais dans Git). |
 | `pipeline/edited_files/` | Fichiers produits par le pipeline, reconstruits par `dvc repro`. |

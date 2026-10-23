@@ -1,7 +1,7 @@
 from typing import Literal
 
-from api_mock.client import get_json
-from api_mock.schemas.alert import Alert
+from mock_client.client import get_json
+from mock_client.schemas.alert import Alert
 
 Severity = Literal["low", "medium", "high", "critical"]
 

@@ -6,9 +6,9 @@ import httpx2
 import pytest
 from pydantic import ValidationError
 
-from api_mock import config
-from api_mock.schemas.site import Site
-from api_mock.services import (
+from mock_client import config
+from mock_client.schemas.site import Site
+from mock_client.services import (
     alert_service,
     reading_service,
     sensor_service,

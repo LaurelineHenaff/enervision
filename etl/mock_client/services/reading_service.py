@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
-from api_mock.client import get_json
-from api_mock.schemas.reading import Reading
+from mock_client.client import get_json
+from mock_client.schemas.reading import Reading
 
 LIMIT_MAX = 1000
 

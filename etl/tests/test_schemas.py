@@ -2,7 +2,7 @@
 import pytest
 from pydantic import ValidationError
 
-from api_mock.schemas.site import Site
+from mock_client.schemas.site import Site
 from tests.conftest import SITE_EXEMPLE
 
 

@@ -1,7 +1,7 @@
 """Configuration : les valeurs de l'API Mock viennent des variables d'environnement."""
 import importlib
 
-from api_mock import config
+from mock_client import config
 
 
 def test_lit_les_variables_d_environnement(monkeypatch):

@@ -1,5 +1,5 @@
-from api_mock.client import get_json
-from api_mock.schemas.sensor import SiteSensors
+from mock_client.client import get_json
+from mock_client.schemas.sensor import SiteSensors
 
 
 async def get_sensors_status() -> list[SiteSensors]:

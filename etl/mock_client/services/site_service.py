@@ -1,5 +1,5 @@
-from api_mock.client import get_json
-from api_mock.schemas.site import Site
+from mock_client.client import get_json
+from mock_client.schemas.site import Site
 
 
 async def get_all_sites() -> list[Site]:

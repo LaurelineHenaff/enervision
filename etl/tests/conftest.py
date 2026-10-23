@@ -1,12 +1,12 @@
 """Fixtures communes aux tests unitaires de l'ETL.
 
 Les tests ne demandent ni base de données ni réseau :
-- les identifiants de l'API Mock reçoivent des valeurs de test avant tout import de api_mock ;
+- les identifiants de l'API Mock reçoivent des valeurs de test avant tout import de mock_client ;
 - l'API Mock est remplacée par un httpx2.MockTransport qui répond avec une fonction de test.
 """
 import os
 
-# À faire avant d'importer api_mock.* : la config est lue à l'import de api_mock.config
+# À faire avant d'importer mock_client.* : la config est lue à l'import de mock_client.config
 os.environ.setdefault("MOCK_API_URL", "http://mock.test")
 os.environ.setdefault("MOCK_API_USERNAME", "utilisateur-test")
 os.environ.setdefault("MOCK_API_PASSWORD", "motdepasse-test")

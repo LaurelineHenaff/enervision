@@ -1,5 +1,5 @@
-from api_mock.client import get_json
-from api_mock.schemas.stats import StatsSummary
+from mock_client.client import get_json
+from mock_client.schemas.stats import StatsSummary
 
 
 async def get_stats_summary() -> StatsSummary:
