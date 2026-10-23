@@ -184,14 +184,14 @@ jobs:
           cd /opt/enervision
           git fetch --quiet --tags origin
           git checkout --force --quiet "$TAG"
-          export IMAGE_TAG="$TAG" COMPOSE_PROJECT_NAME=enervision
+          export IMAGE_TAG="$TAG" IMAGE_PREFIX="$IMAGE_PREFIX" COMPOSE_PROJECT_NAME=enervision
           compose="docker compose -f docker-compose.staging.yml --env-file /etc/enervision/production.env"
           mkdir -p /var/backups/enervision
           if \$compose ps --status running --quiet db | grep -q .; then
             \$compose exec -T db sh -c 'pg_dump -U "\$POSTGRES_USER" "\$POSTGRES_DB"' \
               | gzip > "/var/backups/enervision/db-\$(date +%Y%m%d-%H%M%S)-avant-$TAG.sql.gz"
           fi
-          ls -1t /var/backups/enervision/db-*.sql.gz 2>/dev/null | tail -n +6 | xargs -r rm --
+          { ls -1t /var/backups/enervision/db-*.sql.gz 2>/dev/null || true; } | tail -n +6 | xargs -r rm --
           \$compose pull --ignore-buildable --quiet
           \$compose up -d --remove-orphans
           for i in \$(seq 1 30); do
