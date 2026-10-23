@@ -1,4 +1,4 @@
-import httpx
+import httpx2
 from fastapi import APIRouter, HTTPException
 
 from api_mock.schemas.site import Site
@@ -11,10 +11,10 @@ router = APIRouter(prefix="/sites", tags=["sites"])
 async def list_sites() -> list[Site]:
     try:
         return await get_all_sites()
-    except httpx.HTTPStatusError as e:
+    except httpx2.HTTPStatusError as e:
         raise HTTPException(
             status_code=502,
             detail=f"API Mock a répondu {e.response.status_code}",
         )
-    except httpx.RequestError:
+    except httpx2.RequestError:
         raise HTTPException(status_code=503, detail="API Mock injoignable")
