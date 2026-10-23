@@ -47,7 +47,9 @@ Pile complète : `docker compose up -d` à la racine, puis `docker ps` doit mont
 
 ## Nettoyage de l'historique
 
-`dvc repro` (ou `python -m pipeline clean-history`). Chaque colonne brute est conservée, avec `<colonne>_clean` et `<colonne>_source` (`measured`, `recovered_from_euros`, `interpolated`, `missing`). Sur le fichier actuel, pour la consommation : 119 807 mesurées, 353 retrouvées par les euros (0,15 €/kWh), 1 072 interpolées, 1 415 vides. Les 1 792 zéros sont de vraies coupures et sont conservés.
+`dvc repro` (ou `python -m pipeline clean-history`, qui lit le CSV et `dataset_metadata.json`). Chaque colonne brute est conservée, avec `<colonne>_clean` et `<colonne>_source` (`measured`, `recovered_from_euros`, `interpolated`, `missing`), et les anomalies étiquetées des métadonnées sont reportées dans `anomaly_type` et `anomaly_severity`. Le traitement signale tout écart avec les totaux, la période et la fréquence annoncés.
+
+Sur le fichier actuel, pour la consommation : 119 807 mesurées, 353 retrouvées par les euros (0,15 €/kWh), 1 046 interpolées, 1 441 vides. Les 1 798 zéros sont tous dans une coupure étiquetée : ce sont de vraies coupures, conservées. Une valeur manquante dans une coupure n'est jamais interpolée.
 
 ## Ajouter un traitement
 

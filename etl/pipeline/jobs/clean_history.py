@@ -1,19 +1,27 @@
 """Traitement : nettoie l'historique fourni par l'école et écrit le parquet.
 
-Usage, depuis etl/ : python -m pipeline clean-history [--input CSV] [--output PARQUET]
+Usage, depuis etl/ :
+    python -m pipeline clean-history [--input CSV] [--metadata JSON] [--output PARQUET]
 """
 import argparse
+import json
 import logging
 from pathlib import Path
 
 import pandas as pd
 
-from pipeline.cleaning import CONSUMPTION_COL, WEATHER_COLS, clean
+from pipeline.cleaning import (
+    CONSUMPTION_COL,
+    WEATHER_COLS,
+    check_against_metadata,
+    clean,
+)
 
 logger = logging.getLogger(__name__)
 
 PIPELINE_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT = PIPELINE_DIR / "provided_files" / "all_sites_combined.csv"
+DEFAULT_METADATA = PIPELINE_DIR / "provided_files" / "dataset_metadata.json"
 DEFAULT_OUTPUT = PIPELINE_DIR / "edited_files" / "energy_consumption_cleaned.parquet"
 
 
@@ -21,17 +29,27 @@ def summarize(df: pd.DataFrame) -> None:
     for col in [CONSUMPTION_COL, *WEATHER_COLS]:
         if f"{col}_source" in df:
             logger.info("%s : %s", col, df[f"{col}_source"].value_counts().to_dict())
+    if "anomaly_type" in df:
+        logger.info("anomalies étiquetées (lignes) : %s", df["anomaly_type"].value_counts().to_dict())
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
+    parser.add_argument("--metadata", type=Path, default=DEFAULT_METADATA)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-    logger.info("Lecture de %s", args.input)
-    cleansed = clean(pd.read_csv(args.input))
+    logger.info("Lecture de %s et %s", args.input, args.metadata)
+    metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
+    cleansed = clean(pd.read_csv(args.input), metadata)
+
+    problems = check_against_metadata(cleansed, metadata)
+    for problem in problems:
+        logger.warning("écart avec les métadonnées : %s", problem)
+    if not problems:
+        logger.info("contrôle des métadonnées : totaux, périodes et fréquence conformes")
     summarize(cleansed)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

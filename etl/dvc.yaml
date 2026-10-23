@@ -5,5 +5,6 @@ stages:
       - pipeline/cleaning.py
       - pipeline/jobs/clean_history.py
       - pipeline/provided_files/all_sites_combined.csv
+      - pipeline/provided_files/dataset_metadata.json
     outs:
       - pipeline/edited_files/energy_consumption_cleaned.parquet
