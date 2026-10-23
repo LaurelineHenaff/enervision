@@ -3,7 +3,6 @@
 Toutes les valeurs sensibles (DB, clé JWT) viennent d'ici — jamais en dur
 dans le code. pydantic-settings valide et type automatiquement.
 """
-
 from functools import lru_cache
 
 from pydantic import field_validator

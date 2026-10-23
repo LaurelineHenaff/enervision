@@ -1,6 +1,6 @@
 [core]
     remote = preprod
 ['remote "preprod"']
-    url = /home/laureline/dvc-preprod
+    url = ssh://10.43.43.50/var/lib/enervision/dvc
 ['remote "prod"']
-    url = s3://enervision-data-prod
+    url = s3://enervision-production-data-136825753193

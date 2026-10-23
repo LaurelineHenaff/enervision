@@ -1,5 +1,0 @@
-outs:
-- md5: 8f2b119238d6270c9b87aad08c02e46e
-  size: 1836418
-  hash: md5
-  path: energy_consumption_cleaned.parquet

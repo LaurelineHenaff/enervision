@@ -1,0 +1,18 @@
+schema: '2.0'
+stages:
+  clean_history:
+    cmd: python -m pipeline.clean_history
+    deps:
+    - path: pipeline/clean_history.py
+      hash: md5
+      md5: f5bdd771cf9e8bb83fafceacacd1abc0
+      size: 5591
+    - path: pipeline/provided_files/all_sites_combined.csv
+      hash: md5
+      md5: 2d904fb46164ea17206748a725aec4ab
+      size: 12084751
+    outs:
+    - path: pipeline/edited_files/energy_consumption_cleaned.parquet
+      hash: md5
+      md5: a4ba40f9f7e8945a51b507ab09aa72c0
+      size: 2926881

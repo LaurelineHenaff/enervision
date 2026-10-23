@@ -10,7 +10,9 @@ class Sensor(BaseModel):
 
 
 class SiteSensors(BaseModel):
-    site: str
+    """État des cinq capteurs d'un site (consumption, electrical, temperature, humidity, network)."""
+
+    site_id: str
     site_name: str
     overall: Literal["ok", "degraded", "critical"]
     sensors: dict[str, Sensor]

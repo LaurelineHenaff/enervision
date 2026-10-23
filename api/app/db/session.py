@@ -3,7 +3,6 @@
 Le moteur est créé une fois ; chaque requête API reçoit sa propre session
 via la dépendance get_db(), fermée automatiquement en fin de requête.
 """
-
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine

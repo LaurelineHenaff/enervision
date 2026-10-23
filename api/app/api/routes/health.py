@@ -1,5 +1,4 @@
 """Santé de l'API et de l'API Mock. Utilisées par le staging et le workflow de release."""
-
 from datetime import UTC, datetime
 
 import httpx2

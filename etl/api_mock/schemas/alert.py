@@ -10,5 +10,5 @@ class Alert(BaseModel):
     severity: str
     type: str
     message: str
-    value: float | None
+    value: float | None = None
     threshold: float

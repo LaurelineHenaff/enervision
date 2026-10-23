@@ -4,7 +4,6 @@ Assemble les routes et verrouille le CORS sur le front Angular. Le schéma de la
 pas créé ici : il vient des migrations de db/migrations (dbmate), appliquées avant le
 démarrage de l'API.
 """
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

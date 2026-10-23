@@ -15,7 +15,6 @@ import httpx2
 import pytest
 from fastapi.testclient import TestClient
 
-from api_mock.services import site_service
 from main import app
 
 SITE_EXEMPLE = {
@@ -57,7 +56,7 @@ def mock_api(monkeypatch):
         def faux_client(**kwargs):
             return vrai_client(transport=httpx2.MockTransport(enregistrer), **kwargs)
 
-        monkeypatch.setattr(site_service.httpx2, "AsyncClient", faux_client)
+        monkeypatch.setattr(httpx2, "AsyncClient", faux_client)
         return requetes
 
     return _mock_api

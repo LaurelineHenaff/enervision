@@ -1,36 +1,43 @@
-# ETL 
+# ETL
 
-## Installation (Windows) pour se connecter à l'API Mock
+Le module lit l'API Mock, nettoie l'historique 2023-2024 et, plus tard, alimentera TimescaleDB. Il n'expose pas d'API métier : seule la route `/health` répond (sonde Docker et supervision).
 
-```powershell
+## Installation
+
+```bash
 cd etl
 python -m venv .venv
-.venv\Scripts\Activate
-python -m pip install -r requirements.txt
+source .venv/bin/activate        # Windows : .venv\Scripts\Activate
+pip install -r requirements-dev.txt
 ```
 
-## Lancer en local
+Créer un fichier `.env` dans `etl/` avec `MOCK_API_URL`, `MOCK_API_USERNAME` et `MOCK_API_PASSWORD`. Sur le réseau de l'école, `MOCK_API_URL` vaut par défaut `http://10.43.43.80:8000` et les identifiants sont inutiles ; l'URL publique demande l'authentification basique.
 
-```powershell
-python -m uvicorn main:app --reload
+```bash
+python -m uvicorn main:app --reload     # http://localhost:8000/health
+python -m pytest                        # tests unitaires, sans réseau ni base
 ```
 
-- http://localhost:8000/sites : liste des sites, lue depuis l'API Mock
-- http://localhost:8000/docs : documentation Swagger
+Avec `docker compose up -d` (README à la racine), l'ETL est publié sur http://localhost:8001/health.
 
-Avec `docker compose up -d` (voir le README à la racine), l'ETL est publié sur le port 8001 : http://localhost:8001/docs.
-
-## Rôle de chaque couche
+## Organisation
 
 | Dossier | Rôle |
 |---|---|
-| `routers/` | Reçoit la requête HTTP, appelle un service, renvoie la réponse. Pas de logique métier. |
-| `core/` | Configuration, sécurité. |
-| `models/` | Données telles que stockées en base. |
-| `repositories/` | Accès à la base de données. |
-| `schemas/` | Modèles Pydantic des données échangées avec le front. |
-| `services/` | Logique métier. |
+| `api_mock/client.py` | Client HTTP unique : URL de base, authentification facultative, délai d'attente. |
+| `api_mock/services/` | Une fonction par endpoint du mock (sites, relevés, alertes, capteurs, synthèse, simulation). |
+| `api_mock/schemas/` | Modèles Pydantic des réponses du mock, vérifiés sur ses réponses réelles. |
+| `pipeline/clean_history.py` | Nettoyage de l'historique fourni par l'école (voir ci-dessous). |
+| `pipeline/provided_files/` | Fichiers fournis, suivis avec DVC (jamais dans Git). |
+| `pipeline/edited_files/` | Fichiers produits par le pipeline, reconstruits par `dvc repro`. |
 
-### Fichier env
-Pour que le module fonctionne, il faut créer un fichier .env à la racine du module ETL, contenant les valeurs de MOCK_API_URL, MOCK_API_USERNAME, MOCK_API_PASSWORD\
-exemple : MOCK_API_USERNAME=name
+Les services lèvent `httpx2.HTTPStatusError` (statut 4xx ou 5xx) et `httpx2.RequestError` (réseau) : c'est à l'appelant de décider de réessayer ou de stocker l'échec. Les horodatages envoyés au mock doivent porter un fuseau et sont convertis en UTC.
+
+## Nettoyage de l'historique
+
+```bash
+dvc pull                       # récupère les fichiers fournis (voir docs/donnees-dvc.md)
+python -m pipeline.clean_history
+```
+
+ou `dvc repro`, qui ne relance l'étape que si le script ou le CSV a changé. Le script garde chaque colonne brute et ajoute `<colonne>_clean` et `<colonne>_source` (`measured`, `recovered_from_euros`, `interpolated`, `missing`). Les règles et leurs preuves sont dans la docstring du module. Sur le fichier actuel : 353 kWh retrouvés par le montant en euros (tarif de 0,15 €/kWh mesuré), 1 072 trous courts interpolés, 1 415 valeurs laissées vides, 1 792 zéros conservés comme coupures réelles.

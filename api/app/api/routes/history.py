@@ -5,7 +5,6 @@ Exemple de vraie requête à mettre plus tard :
     SELECT time_bucket('1 hour', ts) AS bucket, avg(consumption_kw)
     FROM measurements WHERE ts > now() - interval '7 days' GROUP BY bucket;
 """
-
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Query

@@ -1,0 +1,8 @@
+stages:
+  clean_history:
+    cmd: python -m pipeline.clean_history
+    deps:
+      - pipeline/clean_history.py
+      - pipeline/provided_files/all_sites_combined.csv
+    outs:
+      - pipeline/edited_files/energy_consumption_cleaned.parquet
