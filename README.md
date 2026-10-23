@@ -6,6 +6,7 @@ EnerVision vend de l’optimisation énergétique à des industriels européens 
 Technos utilisées :
 
 - **Base de données** : PostgreSQL 16 + TimescaleDB
+- **Migrations de la base** : dbmate (fichiers SQL versionnés dans `db/migrations`)
 - **API** : FastAPI (Python 3.13)
 - **Frontend** : Angular 22 (avec SSR), Node 24
 
@@ -52,6 +53,8 @@ Depuis la racine du projet, ouvrir un nouveau terminal :
 docker compose up -d
 ```
 
+Cette commande applique aussi les migrations de la base : le service `migrate` (dbmate) lit les fichiers de `db/migrations/`, crée ce qui manque, puis s'arrête. L'API et l'ETL ne démarrent qu'après sa réussite.
+
 Vérifie que le conteneur est healthy :
 
 ```bash
@@ -66,15 +69,44 @@ docker compose exec db psql -U postgres -d enervision -c "SELECT extname, extver
 
 La ligne `timescaledb` doit apparaître dans la liste.
 
+**Après un `git pull`**, si un collègue a ajouté une migration, la même commande suffit : `migrate` est relancé à chaque `up` et n'applique que ce qui manque.
+
+```bash
+git pull
+docker compose up -d
+```
+
+Commandes utiles :
+
+```bash
+docker compose run --rm migrate status   # migrations appliquées et en attente
+docker compose logs migrate              # erreur éventuelle d'une migration
+docker compose exec db psql -U postgres -d enervision -c '\dn'   # schémas présents
+docker compose up -d --build migrate     # seulement si db/Dockerfile a changé (version de dbmate)
+```
+
+Si `migrate` échoue, l'API et l'ETL ne démarrent pas : lire `docker compose logs migrate`. Pour écrire une nouvelle migration (règles, nom du fichier, ce que vérifie la CI), voir [`docs/migrations-base-de-donnees.md`](docs/migrations-base-de-donnees.md).
+
 Arrêter la base (les données restent dans le volume `pgdata`) :
 
 ```bash
 docker compose down
 ```
 
+Repartir d'une base vide (les migrations sont rejouées au `up` suivant) :
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+Attention : `-v` supprime tous les volumes de la pile, donc les données locales de la base (`pgdata`) mais aussi les expériences MLflow (`mlflow-data`).
+
+C'est aussi le remède si ta base locale a été modifiée à la main (`psql`, outil de l'IDE) : rien ne l'empêche aujourd'hui, et elle ne correspond plus aux migrations. Un changement du schéma passe toujours par un fichier de `db/migrations/`.
+
 ### 4 bis. Démarrer l'API
 
-`docker compose up -d` démarre aussi l'API FastAPI (service `api`), une fois la base `healthy`. Le code de `api/` est monté dans le conteneur, et Uvicorn recharge l'API à chaque modification.
+`docker compose up -d` démarre aussi l'API FastAPI (service `api`), une fois la base `healthy` et les migrations appliquées. Le code de `api/` est monté dans le conteneur, et Uvicorn recharge l'API à chaque modification.
 
 - Documentation interactive : http://localhost:8000/docs
 - Santé de l'API (environnement et version) : http://localhost:8000/health
@@ -206,7 +238,7 @@ Ces hooks ne remplacent pas la CI (`git commit --no-verify` les contourne) et ne
 
 ## Staging
 
-Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, une image Docker par module ayant un `Dockerfile` est publiée sur GHCR, puis la VM tire les images toutes les 2 minutes et relance les conteneurs. La base, l'API, l'ETL et le frontend y tournent ; `ml` n'a pas de service sur le staging.
+Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, une image Docker par module ayant un `Dockerfile` est publiée sur GHCR, puis la VM tire les images toutes les 2 minutes et relance les conteneurs. La base, l'API, l'ETL et le frontend y tournent ; `ml` n'a pas de service sur le staging. Les migrations de la base y sont appliquées à chaque déploiement, par une image `db` du même tag.
 
 - API du staging : http://10.43.43.50:8000/docs (réseau de l'école)
 - Frontend du staging : http://10.43.43.50:4000
@@ -243,6 +275,11 @@ Les outils de lint et de test (`ruff`, `pytest`, `pytest-cov`) sont dans `requir
 - Se connecte à la BDD TimescaleDB
 - Donne accès au front avec des web services permettant de récupérer les prédictions de pics de consommation, l'historique des données et les recommandations
 - Gestion de l'authentification
+
+### Module DB
+- Contient les migrations SQL de la base (`db/migrations`), le seul endroit où le schéma est modifié
+- Une image publiée comme les autres modules ; le service `migrate` l'applique avant le démarrage de l'API et de l'ETL
+- Règles et procédure : [`docs/migrations-base-de-donnees.md`](docs/migrations-base-de-donnees.md)
 
 ### Module Docs
 - Donne accès à la documentation du projet

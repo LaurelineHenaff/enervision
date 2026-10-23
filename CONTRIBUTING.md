@@ -9,6 +9,7 @@ api/        API (données, prédictions, anomalies) et ses tests (api/tests)
 etl/        batch d'ingestion et nettoyage en pandas, tests (etl/tests)
 ml/         entraînement, challengers, MLflow, tests (ml/tests)
 frontend/   dashboard web, tests Cypress (frontend/cypress)
+db/         migrations SQL de la base (db/migrations), appliquées au démarrage par dbmate
 infra/      Terraform, Docker, scripts de déploiement (infra/scripts)
 docs/       architecture, rapports de décision, comptes rendus
 .github/    workflows CI/CD et gabarit de PR
@@ -38,6 +39,15 @@ git switch -c ma-tache
 git push -u origin ma-tache
 # ouvrir la PR, demander une revue, corriger, squash merge
 ```
+
+## Migrations de la base
+
+Toute modification de la base (table, colonne, index, agrégat, données de référence) est un fichier SQL de `db/migrations/`, jamais une commande lancée à la main. Il s'applique tout seul au démarrage de la pile. Détail, création d'une migration et cas particuliers dans [`docs/migrations-base-de-donnees.md`](docs/migrations-base-de-donnees.md). Les règles :
+
+- Nom `AAAAMMJJHHMMSS_sujet.sql` (heure de création du fichier), avec les blocs `-- migrate:up` et `-- migrate:down` (ce dernier peut rester vide).
+- Une migration fusionnée ne se modifie, ne se renomme et ne se supprime jamais : on en ajoute une nouvelle. La CI refuse la PR sinon.
+- On corrige en avant, il n'y a pas de retour arrière automatique. Chaque migration doit rester compatible avec la version précédente du code, car un retour arrière du staging relance l'ancienne image sur la base déjà migrée.
+- Aucun mot de passe ni secret dans une migration (les rôles de connexion se créent hors dépôt).
 
 ## Revues
 

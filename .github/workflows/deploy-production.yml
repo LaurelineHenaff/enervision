@@ -146,7 +146,7 @@ jobs:
           # Le push du tag lance aussi publish-images.yml (job promote), qui ajoute le tag de version
           # à l'image déjà construite pour ce commit : on attend jusqu'à 10 minutes qu'il apparaisse.
           # Pour un retour arrière, le tag existe déjà et la boucle sort au premier essai.
-          for module in frontend api etl ml; do
+          for module in frontend api etl ml db; do
             [ -f "$module/Dockerfile" ] || continue
             image="$IMAGE_PREFIX/$module:$TAG"
             for i in $(seq 1 20); do

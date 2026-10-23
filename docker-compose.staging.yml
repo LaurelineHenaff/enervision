@@ -23,6 +23,17 @@ services:
       timeout: 5s
       retries: 5
 
+  # Applique les migrations de l'image db (même tag que le reste) puis s'arrête. restart "no" :
+  # un service ponctuel relancé en boucle fausserait service_completed_successfully.
+  migrate:
+    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/db:${IMAGE_TAG:-main}
+    restart: "no"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-enervision}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-enervision}?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/api:${IMAGE_TAG:-main}
     restart: unless-stopped
@@ -36,6 +47,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
 
@@ -47,6 +60,9 @@ services:
       MOCK_API_URL: ${MOCK_API_URL:?MOCK_API_URL manquant dans staging.env}
       MOCK_API_USERNAME: ${MOCK_API_USERNAME:?MOCK_API_USERNAME manquant dans staging.env}
       MOCK_API_PASSWORD: ${MOCK_API_PASSWORD:?MOCK_API_PASSWORD manquant dans staging.env}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "8001:8000"
 
