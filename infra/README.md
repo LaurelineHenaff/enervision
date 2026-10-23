@@ -20,7 +20,7 @@ Ce qui est **déjà fait** par l'admin (rien à refaire) :
 | Région | `eu-west-3` (Paris) |
 | Nom du profil AWS | `enervision` |
 | Bucket du state Terraform | `enervision-tfstate-dreamteam2026` |
-| Dépôt GitHub | `projet-piscine-eadl-enervision/enervision` |
+| Dépôt GitHub | `projet-piscine-eadl-enervision/smart-energy-optimizer` |
 
 ---
 
@@ -49,7 +49,7 @@ sudo apt update && sudo apt install -y curl unzip python3 git
 
 # Récupérer le dépôt (si ce n'est pas déjà fait)
 mkdir -p ~/projects && cd ~/projects
-git clone git@github.com:projet-piscine-eadl-enervision/enervision.git
+git clone git@github.com:projet-piscine-eadl-enervision/smart-energy-optimizer.git
 cd enervision
 
 # Installer les outils (sans sudo !)

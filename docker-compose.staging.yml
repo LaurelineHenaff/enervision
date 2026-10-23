@@ -26,7 +26,7 @@ services:
   # Applique les migrations de l'image db (même tag que le reste) puis s'arrête. restart "no" :
   # un service ponctuel relancé en boucle fausserait service_completed_successfully.
   migrate:
-    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/db:${IMAGE_TAG:-main}
+    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/smart-energy-optimizer}/db:${IMAGE_TAG:-main}
     restart: "no"
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-enervision}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-enervision}?sslmode=disable
@@ -35,7 +35,7 @@ services:
         condition: service_healthy
 
   api:
-    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/api:${IMAGE_TAG:-main}
+    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/smart-energy-optimizer}/api:${IMAGE_TAG:-main}
     restart: unless-stopped
     environment:
       APP_ENV: ${APP_ENV:-staging}
@@ -54,7 +54,7 @@ services:
 
   etl:
     profiles: [apps]
-    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/etl:${IMAGE_TAG:-main}
+    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/smart-energy-optimizer}/etl:${IMAGE_TAG:-main}
     restart: unless-stopped
     environment:
       MOCK_API_URL: ${MOCK_API_URL:?MOCK_API_URL manquant dans staging.env}
@@ -68,7 +68,7 @@ services:
 
   frontend:
     profiles: [apps]
-    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/enervision}/frontend:${IMAGE_TAG:-main}
+    image: ${IMAGE_PREFIX:-ghcr.io/projet-piscine-eadl-enervision/smart-energy-optimizer}/frontend:${IMAGE_TAG:-main}
     restart: unless-stopped
     environment:
       # Adresse de l'API à laquelle le serveur transmet /api/ (lue au lancement)

@@ -24,5 +24,5 @@ dpkg -i /tmp/amazon-ssm-agent.deb
 systemctl enable --now amazon-ssm-agent
 
 # Dépôt de déploiement et dossier de configuration (staging.env et jeton GHCR : à créer à la main, jamais ici)
-git clone https://github.com/projet-piscine-eadl-enervision/enervision /opt/enervision
+git clone https://github.com/projet-piscine-eadl-enervision/smart-energy-optimizer /opt/enervision
 install -d -m 700 /etc/enervision

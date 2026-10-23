@@ -31,7 +31,7 @@ Clone le dépôt dans le système de fichiers WSL (plus rapide que `/mnt/c`) :
 
 ```bash
 sudo apt install git
-git clone https://github.com/projet-piscine-eadl-enervision/enervision.git ~/projects/enervision
+git clone https://github.com/projet-piscine-eadl-enervision/smart-energy-optimizer.git ~/projects/enervision
 cd ~/projects/enervision
 ```
 
