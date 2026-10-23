@@ -48,11 +48,11 @@ CREATE OR REPLACE VIEW analytics.latest_reading AS
 SELECT
     s.site_id,
     v.consumption_kw,                        -- dernière consommation non nulle
-    now() - v.received_at  AS age,           -- âge de cette valeur
+    now() - v.time  AS age,           -- âge de cette valeur
     d.data_quality         AS last_quality   -- qualité du tout dernier relevé
 FROM ref.site s
 LEFT JOIN LATERAL (
-    SELECT consumption_kw, received_at
+    SELECT consumption_kw, time
     FROM core.energy_reading e
     WHERE e.site_id = s.site_id AND e.consumption_kw IS NOT NULL
     ORDER BY e.time DESC
@@ -65,6 +65,25 @@ LEFT JOIN LATERAL (
     ORDER BY e.time DESC
     LIMIT 1
 ) d ON TRUE;
+
+-- consommation habituelle de chaque site par mois, par type de jour et par heure
+CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.site_baseline AS
+SELECT
+    site_id,
+    extract(month FROM time AT TIME ZONE 'UTC')::int                 AS month,
+    CASE WHEN extract(isodow FROM time AT TIME ZONE 'UTC') IN (6, 7)
+         THEN 'weekend' ELSE 'weekday' END                           AS day_type,
+    extract(hour FROM time AT TIME ZONE 'UTC')::int                  AS hour,
+    avg(consumption_kw)                                              AS avg_kw,
+    stddev(consumption_kw)                                           AS stddev_kw,  -- écart type
+    count(consumption_kw)                                            AS nb_readings
+FROM core.energy_reading
+WHERE data_quality <> 'critical'
+GROUP BY 1, 2, 3, 4
+WITH NO DATA;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_site_baseline
+    ON analytics.site_baseline (site_id, month, day_type, hour);
 
 SELECT add_continuous_aggregate_policy('analytics.energy_minute',
     start_offset => INTERVAL '1 hour', end_offset => INTERVAL '1 minute',

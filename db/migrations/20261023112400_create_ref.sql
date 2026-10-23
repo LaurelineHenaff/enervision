@@ -116,6 +116,6 @@ CREATE TABLE IF NOT EXISTS ref.tariff (
 );
 
 INSERT INTO ref.tariff (valid_from, price_eur_kwh, source) VALUES
-    ('2024-01-01', 0.25, 'Hypothèse : ordre de grandeur du tarif Base EDF, à documenter')
+    ('2023-01-01', 0.15, 'Mesuré sur le jeu historique')
 ON CONFLICT DO NOTHING;
 -- migrate:down

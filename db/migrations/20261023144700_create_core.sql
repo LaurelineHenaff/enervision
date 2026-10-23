@@ -2,8 +2,8 @@
 -- Création tables du schéma CORE
 
 CREATE TABLE IF NOT EXISTS core.energy_reading (
-    time                 TIMESTAMPTZ NOT NULL,  -- heure donnée par l'api mock important de mettre les deux horaires qui peuvent différer
-	received_at          TIMESTAMPTZ NOT NULL DEFAULT now(),   -- heure de réception (UTC), relevée par notre code
+    time               TIMESTAMPTZ NOT NULL DEFAULT now(),  -- heure de réception (UTC), relevée par notre code
+	mock_time          TIMESTAMPTZ NOT NULL,  -- heure donnée par l'api mock important de mettre les deux horaires qui peuvent différer
     site_id              TEXT NOT NULL REFERENCES ref.site (site_id),
     consumption_kw       NUMERIC,
     voltage_v            NUMERIC,
