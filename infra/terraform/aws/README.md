@@ -1,44 +1,173 @@
-# Terraform AWS (production)
+# Terraform : production AWS
 
-Squelette de l'infrastructure de production sur AWS. Il n'a pas encore été appliqué : les informations sur l'accès AWS (compte, région, réseau, droits IAM) ne sont pas toutes connues, et plusieurs valeurs sont des hypothèses à confirmer.
+Infrastructure de production d'EnerVision, **appliquée** dans le compte AWS du projet
+(`eu-west-3`). Le state est partagé dans S3 : toute l'équipe travaille sur la même infra.
 
-## Ce que le squelette décrit
+Contexte général (environnements, accès, secrets) : [`infra/README.md`](../../README.md).
+Préparer son poste (SSO, outils) : [`docs/aws-poste-developpeur.md`](../../../docs/aws-poste-developpeur.md).
 
-- Une instance EC2 Debian 13 (même système que la VM du staging) qui fait tourner le `docker-compose.staging.yml` : base, API, ETL et frontend, avec les mêmes images que le staging, promues par le tag de version.
-- Un rôle IAM pour l'instance, avec Systems Manager (SSM) : l'administration et le déploiement se font sans SSH ni IP publique.
-- Un groupe de sécurité sans aucune entrée par défaut. Le port 8000 de l'API s'ouvre en renseignant `api_ingress_cidrs`.
-- Un rôle IAM de déploiement pour GitHub Actions, assumé par OIDC (aucun secret AWS dans GitHub). Il n'est utilisable que par les jobs de l'environnement GitHub `production`, et ne peut que lancer des commandes shell SSM sur cette instance.
-- Le script `user_data.sh` installe Docker, l'agent SSM et clone le dépôt dans `/opt/enervision`. Il n'a pas encore tourné sur une vraie instance.
+## Ressources gérées
+
+| Ressource | Nom | Détail |
+|---|---|---|
+| `aws_instance.main` | `enervision-production` | Debian 13 officielle, `t3.large`, disque racine 64 Go gp3 **chiffré**, IMDSv2 obligatoire |
+| `aws_security_group.instance` | `enervision-production-instance` | **aucune entrée** ; sortie TCP 80 et 443 vers Internet |
+| `aws_vpc_security_group_ingress_rule.api` | — | port 8000, seulement si `api_ingress_cidrs` est renseigné (vide par défaut) |
+| `aws_iam_role.instance` + instance profile | `enervision-production-instance` | politique `AmazonSSMManagedInstanceCore` : agent SSM, Session Manager |
+| `aws_iam_openid_connect_provider.github` | — | fournisseur OIDC de GitHub (un seul possible par compte) |
+| `aws_iam_role.deploy` + politique | `enervision-production-deploy` | assumable par OIDC depuis l'environnement GitHub `production` ; `ssm:SendCommand` sur **cette instance** et le document `AWS-RunShellScript`, lecture des résultats |
+
+L'instance est dans le **VPC par défaut** du compte. Elle y reçoit une IP publique, qui lui
+sert uniquement à **sortir** (GHCR, dépôts Debian, SSM, API mock). Aucun port n'étant ouvert
+en entrée, elle n'est pas joignable depuis Internet. L'administration passe par SSM, sans SSH.
+
+**Hors Terraform**, créés une fois à la main : le bucket du state
+(`enervision-tfstate-dreamteam2026`), IAM Identity Center et l'alerte de budget.
+
+## Fichiers
+
+| Fichier | Contenu |
+|---|---|
+| `versions.tf` | Terraform ≥ 1.10, provider AWS `~> 6.0`, backend S3 partiel, tags par défaut |
+| `variables.tf` | région, réseau, type d'instance, OIDC GitHub… (voir plus bas) |
+| `main.tf` | toutes les ressources ci-dessus |
+| `outputs.tf` | `instance_id`, `deploy_role_arn`, IP, AMI |
+| `user_data.sh` | premier démarrage : Docker + Compose, agent SSM, clone du dépôt dans `/opt/enervision`, dossier `/etc/enervision` |
+| `backend.hcl.example` | modèle de `backend.hcl` (non versionné) |
+| `terraform.tfvars.example` | modèle de `terraform.tfvars` (non versionné) |
+| `.terraform.lock.hcl` | versions exactes des providers : **à commiter** |
 
 ## Utilisation
 
-```powershell
-cp terraform.tfvars.example terraform.tfvars   # puis renseigner les valeurs
-terraform init
-terraform plan
+Prérequis : poste préparé et `aws sts get-caller-identity` qui fonctionne
+([`docs/aws-poste-developpeur.md`](../../../docs/aws-poste-developpeur.md)).
+
+```bash
+cd infra/terraform/aws
+cp backend.hcl.example backend.hcl            # bucket : enervision-tfstate-dreamteam2026
+# terraform.tfvars : à récupérer en message privé (vpc_id, subnet_id)
+terraform init -backend-config=backend.hcl
+terraform plan                                # doit afficher "No changes."
 ```
 
-Il faut des identifiants AWS dans l'environnement (profil `aws configure`, SSO ou variables `AWS_*`). Le fichier `.terraform.lock.hcl`, créé par `terraform init`, doit être commité.
+Pour une modification :
 
-## Déploiement : `deploy-production.yml`
+```bash
+terraform plan -out=tfplan      # relire : + création, ~ modification, - suppression, -/+ remplacement
+terraform apply tfplan          # applique exactement le plan relu
+```
 
-Le workflow `.github/workflows/deploy-production.yml` déploie un tag `vX.Y.Z` sur l'instance. La procédure (release, approbation, retour arrière) est décrite dans [`docs/mise-en-production.md`](../../../docs/mise-en-production.md). Côté infrastructure, le job de déploiement assume le rôle de déploiement par OIDC, puis lance sur l'instance (SSM Run Command) : `git checkout` du tag, `docker compose pull` et `up -d` avec `IMAGE_TAG=<tag>`, puis attente de `/health`.
+### Règles de l'équipe
 
-Mise en route, dans l'ordre :
+- `plan` : autant que nécessaire, il ne modifie rien.
+- `apply` : **annoncé à l'équipe**, depuis une branche **à jour avec `main`**, après relecture du
+  plan, puis PR rapide pour que `main` reflète ce qui tourne sur AWS.
+- Ne **jamais** appliquer un plan qui contient `aws_instance.main must be replaced` ou
+  `forces replacement` sans l'avoir décidé : il détruit la VM de prod.
+- `Error acquiring the state lock` : quelqu'un d'autre fait un `plan` ou un `apply`, attendre.
+- Ne jamais commiter `backend.hcl`, `*.tfvars`, `*.tfstate*`, `tfplan`, `.terraform/`.
 
-1. `terraform apply`, puis relever les sorties `instance_id` et `deploy_role_arn`.
-2. Sur l'instance (par SSM Session Manager) : créer `/etc/enervision/production.env` (droits 600) avec `POSTGRES_PASSWORD`, `MOCK_API_URL`, `MOCK_API_USERNAME`, `MOCK_API_PASSWORD`, `APP_ENV=production` (et `COMPOSE_PROFILES=apps` quand `etl` et `frontend` sont prêts), puis faire `docker login ghcr.io` (même jeton `read:packages` que le staging).
-3. Dans GitHub, environnement `production` > *Environment variables* : `AWS_REGION`, `AWS_DEPLOY_ROLE_ARN` (sortie `deploy_role_arn`) et `AWS_INSTANCE_ID` (sortie `instance_id`).
-4. Dans GitHub, *Settings > Environments > production > Deployment branches and tags* : autoriser la branche `main` en plus des tags `v*`. Un lancement manuel (retour arrière) s'exécute depuis `main`.
-5. Dans GitHub, *Settings > Secrets and variables > Actions > Variables* (variable de dépôt) : `PRODUCTION_ENABLED` à `true`. Tant qu'elle est absente, le workflow ne fait rien.
+## Points d'attention (déjà rencontrés)
 
-## À confirmer ou à décider
+**Nouvelle image Debian = remplacement de l'instance.** L'AMI est cherchée avec
+`most_recent = true`. Quand Debian publie une nouvelle image, Terraform voudrait remplacer
+l'instance. C'est neutralisé par :
 
-- Région, compte AWS, VPC et sous-réseau fournis (variables `region`, `vpc_id`, `subnet_id`).
-- Type d'instance (`t3.large` est une hypothèse) et taille du disque, d'après le dimensionnement.
-- Exposition de l'API : HTTPS, répartiteur de charge, nom de domaine, IP publique. Rien n'est ouvert pour l'instant.
-- État Terraform partagé : bucket S3 (bloc `backend` commenté dans `versions.tf`).
-- Secrets de la production (`/etc/enervision/production.env`, jeton GHCR) : à créer sur l'instance par SSM, ou via AWS Secrets Manager. Jamais dans le code.
-- Fournisseur OIDC de GitHub : un seul est possible par compte, à désactiver (`create_github_oidc_provider = false`) s'il existe déjà.
+```hcl
+lifecycle {
+  ignore_changes = [ami, user_data]
+}
+```
 
-Ne jamais commiter `terraform.tfvars` ni les fichiers d'état.
+Le système se met à jour par `apt` sur la VM. Pour repartir volontairement sur une image neuve :
+`terraform apply -replace=aws_instance.main` (VM recréée : refaire la *mise en route* ci-dessous).
+
+**`user_data.sh` ne s'exécute qu'au premier démarrage.** Le modifier n'a aucun effet sur
+l'instance existante. Ce qui doit être corrigé sur la VM en place se fait par Session Manager,
+et se reporte dans le script pour la prochaine création.
+
+**Format du `sub` OIDC.** L'organisation GitHub utilise le format **immuable** (noms suivis
+des identifiants numériques). La condition du rôle `deploy` s'appuie donc sur
+`github_oidc_sub_prefix`, pas sur le nom du dépôt. Pour vérifier :
+
+```bash
+gh api repos/projet-piscine-eadl-enervision/enervision/actions/oidc/customization/sub
+```
+
+Si le `sub` ne correspond pas, le workflow échoue avec
+`Not authorized to perform sts:AssumeRoleWithWebIdentity`.
+
+**Un seul fournisseur OIDC GitHub par compte.** S'il existe déjà (autre projet dans le même
+compte), mettre `create_github_oidc_provider = false`.
+
+**Sortie limitée aux ports 80 et 443.** Un service externe sur un autre port (API mock sur
+`:8080`, par exemple) n'est pas joignable sans une règle `egress` supplémentaire.
+
+## Variables
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `region` | `eu-west-3` | région AWS |
+| `project`, `environment` | `enervision`, `production` | noms (`enervision-production-…`) et tags |
+| `vpc_id`, `subnet_id` | *(aucun)* | VPC et sous-réseau par défaut du compte, dans `terraform.tfvars` |
+| `instance_type` | `t3.large` | 8 Go de mémoire pour base, API, ETL et frontend |
+| `root_volume_gb` | `64` | taille du disque |
+| `api_ingress_cidrs` | `[]` | CIDR autorisés sur le port 8000 ; vide = rien d'ouvert |
+| `github_oidc_sub_prefix` | `repo:projet-piscine-eadl-enervision@344791702/enervision@1425243299` | préfixe du `sub` OIDC (format immuable) |
+| `create_github_oidc_provider` | `true` | créer le fournisseur OIDC |
+
+## Sorties
+
+```bash
+terraform output                       # toutes
+terraform output -raw instance_id      # pour Session Manager et GitHub
+terraform output -raw deploy_role_arn  # pour GitHub
+```
+
+Depuis la racine du dépôt : `terraform -chdir=infra/terraform/aws output -raw instance_id`.
+
+## Mise en route de la production
+
+Déjà faite. À refaire **seulement si l'instance est recréée** (sauf l'étape GitHub, qui ne
+change que si `instance_id` change).
+
+1. **Après `apply`**, attendre 3 à 5 minutes (`user_data.sh`), puis vérifier que l'agent SSM est
+   en ligne :
+   ```bash
+   aws ssm describe-instance-information \
+     --query 'InstanceInformationList[].[InstanceId,PingStatus]' --output table
+   ```
+2. **Sur l'instance**, en root (`aws ssm start-session --target <instance-id>`, puis `sudo -i`) :
+   - vérifier `cloud-init status --long` (`done`) et que `/opt/enervision` est bien un clone ;
+   - `docker login ghcr.io` avec un jeton GitHub *classic* `read:packages`, **en root** (c'est
+     root qui exécute les déploiements) ;
+   - créer `/etc/enervision/production.env` (`umask 077`) : `APP_ENV=production`,
+     `POSTGRES_PASSWORD` (neuf, lettres et chiffres uniquement), `MOCK_API_URL`,
+     `MOCK_API_USERNAME`, `MOCK_API_PASSWORD`, et `COMPOSE_PROFILES=apps` si les images `etl`
+     et `frontend` existent ;
+   - contrôler :
+     `docker compose -f docker-compose.staging.yml --env-file /etc/enervision/production.env config >/dev/null`.
+3. **Dans GitHub**, *Settings → Environments → `production`* :
+   - *Required reviewers* : au moins deux personnes ;
+   - *Deployment branches and tags* : branche `main` **et** tags `v*` ;
+   - variables `AWS_REGION` (`eu-west-3`), `AWS_DEPLOY_ROLE_ARN`, `AWS_INSTANCE_ID`.
+4. **Variable de dépôt** `PRODUCTION_ENABLED=true` (sans elle, `deploy-production.yml` ne fait rien).
+
+## Supprimer l'infrastructure (fin de projet)
+
+```bash
+terraform plan -destroy        # relire la liste
+terraform destroy
+```
+
+Puis, **en dernier** (le `destroy` en a besoin) : vider et supprimer le bucket du state dans
+la console S3 (*Empty*, puis *Delete* : il est versionné). Vérifier quelques jours plus tard dans
+*Billing → Bills* qu'aucun service ne facture encore. Révoquer aussi le jeton GHCR de l'EC2.
+
+## Reste à décider
+
+- **Exposition** du site et de l'API pour la démo : HTTPS (80/443) ou port 8000 pour quelques
+  IP (`api_ingress_cidrs`), nom de domaine éventuel. `NG_ALLOWED_HOSTS` est à renseigner dans
+  `production.env` à ce moment-là.
+- **Dimensionnement** : `t3.large` à confirmer d'après la consommation réelle.
+- **Stockage DVC** : bucket S3 dédié à ajouter dans Terraform.
