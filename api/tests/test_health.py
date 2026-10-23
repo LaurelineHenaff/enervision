@@ -20,18 +20,18 @@ def mock_api(monkeypatch):
     """Fait répondre l'API Mock par une fonction de test au lieu du réseau."""
 
     def _mock_api(handler):
-        vrai_client = httpx.AsyncClient
+        vrai_client = httpx2.AsyncClient
 
         def faux_client(**kwargs):
-            return vrai_client(transport=httpx.MockTransport(handler), **kwargs)
+            return vrai_client(transport=httpx2.MockTransport(handler), **kwargs)
 
-        monkeypatch.setattr(health.httpx, "AsyncClient", faux_client)
+        monkeypatch.setattr(health.httpx2, "AsyncClient", faux_client)
 
     return _mock_api
 
 
 def test_health_mock_ok(client, mock_api):
-    mock_api(lambda request: httpx.Response(200, json={"status": "ok"}))
+    mock_api(lambda request: httpx2.Response(200, json={"status": "ok"}))
     response = client.get("/health/mock")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
@@ -39,7 +39,7 @@ def test_health_mock_ok(client, mock_api):
 
 def test_health_mock_injoignable(client, mock_api):
     def handler(request):
-        raise httpx.ConnectError("connexion refusée", request=request)
+        raise httpx2.ConnectError("connexion refusée", request=request)
 
     mock_api(handler)
     response = client.get("/health/mock")
@@ -48,7 +48,7 @@ def test_health_mock_injoignable(client, mock_api):
 
 
 def test_health_mock_en_erreur(client, mock_api):
-    mock_api(lambda request: httpx.Response(500))
+    mock_api(lambda request: httpx2.Response(500))
     response = client.get("/health/mock")
     assert response.status_code == 502
     assert "500" in response.json()["detail"]
