@@ -238,7 +238,7 @@ Ces hooks ne remplacent pas la CI (`git commit --no-verify` les contourne) et ne
 
 ### 7 bis. Récupérer les données volumineuses (DVC)
 
-Les jeux de données de `etl/` (historique 2023-2024) ne sont pas dans Git : ils sont suivis avec DVC. Pour les obtenir, installer DVC, configurer ses accès (VM de préproduction et AWS) puis lancer `dvc pull`. Le pas à pas est dans [`docs/donnees-dvc.md`](docs/donnees-dvc.md), le test de l'ETL en local dans [`etl/README.md`](etl/README.md).
+Les jeux de données de `etl/` sont suivis avec DVC, pas avec Git. Mise en place et usage : [`docs/donnees-dvc.md`](docs/donnees-dvc.md). Tests de l'ETL : [`etl/README.md`](etl/README.md).
 
 ## Staging
 

@@ -1,22 +1,16 @@
 """Nettoyage des relevés historiques 2023-2024 (couche silver).
 
-Source : all_sites_combined.csv (7 sites, un relevé par heure), fourni par l'école et suivi avec
-DVC. Chaque colonne de mesure garde sa valeur brute, NULL compris ; la valeur nettoyée est écrite
-à côté (<colonne>_clean) avec son origine (<colonne>_source). Rien n'est écrasé.
+Source : all_sites_combined.csv (7 sites, un relevé par heure), suivi avec DVC. Les colonnes brutes
+sont conservées, NULL compris ; la valeur nettoyée est écrite à côté (<colonne>_clean) avec son
+origine (<colonne>_source).
 
-Règles, établies en mesurant le fichier :
-- horodatages ramenés en UTC (le fichier n'en contient aucun avec fuseau : les valeurs sans
-  fuseau sont supposées en UTC, comme l'API Mock) ;
-- les zéros de consommation sont de vraies coupures (le montant en euros est aussi nul et les
-  métadonnées décrivent des coupures électriques) : conservés ;
-- kWh manquant et montant connu : montant / 0,15 (le rapport euros/kWh mesuré va de 0,1496 à
-  0,1503 pour les sept sites) ;
-- trou court (jusqu'à 4 h, 6 h pour la météo) : interpolation linéaire entre deux valeurs
-  connues ;
-- trou plus long : laissé vide, jamais comblé par 0 ni extrapolé.
+Règles, mesurées sur le fichier :
+- horodatages en UTC (le fichier n'a aucun fuseau : sans fuseau = UTC, comme l'API Mock) ;
+- zéros de consommation conservés : ce sont de vraies coupures (euros aussi à 0) ;
+- kWh manquant avec montant connu : montant / 0,15 (rapport mesuré de 0,1496 à 0,1503) ;
+- trou de 4 h au plus (6 h pour la météo) : interpolation linéaire ; au-delà, laissé vide.
 
-Usage, depuis le dossier etl/ :
-    python -m pipeline.clean_history [--input CSV] [--output PARQUET]
+Usage, depuis etl/ : python -m pipeline.clean_history [--input CSV] [--output PARQUET]
 """
 import argparse
 import logging
