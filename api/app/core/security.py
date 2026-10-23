@@ -6,19 +6,21 @@ Les jetons sont signés avec SECRET_KEY : impossible à forger sans la clé.
 from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
+from pwdlib.hashers.bcrypt import BcryptHasher
 
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt (et non argon2) pour rester compatible avec les hashes déjà en base.
+password_hash = PasswordHash((BcryptHasher(),))
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return password_hash.hash(password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return password_hash.verify(plain, hashed)
 
 
 def create_access_token(subject: str) -> str:
