@@ -209,3 +209,11 @@ async def test_simulation_de_pic(mock_api):
 async def test_simulation_refuse_une_duree_hors_bornes(duree):
     with pytest.raises(ValueError, match="duration_minutes"):
         await simulation_service.simulate_spike("SITE002", duree)
+
+
+def test_client_base_url_et_delai():
+    from mock_client.client import TIMEOUT_SECONDS, mock_client
+
+    client = mock_client()
+    assert str(client.base_url).startswith("http://mock.test/api/v1")
+    assert client.timeout.read == TIMEOUT_SECONDS

@@ -89,3 +89,12 @@ def test_cli_ecrit_un_parquet(tmp_path):
     ecrit = pd.read_parquet(sortie)
     assert {"consumption_kwh", "consumption_kwh_clean", "consumption_kwh_source"} <= set(ecrit)
     assert len(ecrit) == 3
+
+
+def test_doublons_et_intervalles_irreguliers_journalises(caplog):
+    df = relevés([1.0, 2.0, 3.0])
+    df = pd.concat([df, df.iloc[[0]], relevés([4.0], debut="2023-01-01 05:00:00")], ignore_index=True)
+    with caplog.at_level("WARNING"):
+        ch.clean(df)
+    assert "doublons" in caplog.text
+    assert "intervalles différents" in caplog.text

@@ -33,3 +33,10 @@ def test_champ_obligatoire_manquant(champ):
 def test_capacite_non_numerique_refusee():
     with pytest.raises(ValidationError):
         Site.model_validate({**SITE_EXEMPLE, "capacity_kw": "beaucoup"})
+
+
+def test_etat_global_des_capteurs_inconnu_refuse():
+    from mock_client.schemas.sensor import SiteSensors
+
+    with pytest.raises(ValidationError):
+        SiteSensors(site_id="SITE001", site_name="Bureau", overall="inconnu", sensors={})
