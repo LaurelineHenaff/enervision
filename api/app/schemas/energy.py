@@ -1,4 +1,5 @@
 """Schémas Pydantic pour les données énergétiques exposées au front."""
+
 from datetime import datetime
 
 from pydantic import BaseModel

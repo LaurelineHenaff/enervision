@@ -1,0 +1,6 @@
+[core]
+    remote = preprod
+['remote "preprod"']
+    url = /home/laureline/dvc-preprod
+['remote "prod"']
+    url = s3://enervision-data-prod

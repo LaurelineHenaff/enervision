@@ -4,6 +4,7 @@ Séparer les schémas des modèles SQL évite d'exposer le hash du mot de passe 
 UserRead ne contient jamais hashed_password.
 UserCreate ne contient jamais role : impossible de s'inscrire en admin.
 """
+
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field

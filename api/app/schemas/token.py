@@ -1,4 +1,5 @@
 """Schémas Pydantic pour les jetons JWT renvoyés à la connexion."""
+
 from pydantic import BaseModel
 
 

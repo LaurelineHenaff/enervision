@@ -109,12 +109,14 @@ Protéger une route dans `app/api/routes/` :
 ```python
 from app.api.deps import AdminUser, CurrentUser, DbSession
 
+
 @router.get("/exemple")
 async def exemple(current_user: CurrentUser, db: DbSession):  # connecté → sinon 401
     ...
 
+
 @router.get("/admin/exemple")
-async def admin_exemple(admin: AdminUser, db: DbSession):     # admin → sinon 403
+async def admin_exemple(admin: AdminUser, db: DbSession):  # admin → sinon 403
     ...
 ```
 

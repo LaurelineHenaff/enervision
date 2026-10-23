@@ -3,6 +3,7 @@
 get_current_user() lit le jeton Bearer, le vérifie, et charge l'utilisateur.
 On la pose sur toute route à protéger : sans jeton valide → 401 automatique.
 """
+
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status

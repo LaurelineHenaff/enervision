@@ -34,7 +34,9 @@ def main() -> None:
         mlflow.log_param("version_code", os.getenv("GIT_SHA", "dev"))
         mlflow.log_metric("base_accessible", 1.0)
 
-    print(f"MLflow : run {run.info.run_id} enregistré dans l'expérience '{EXPERIENCE}' ({tracking_uri})")
+    print(
+        f"MLflow : run {run.info.run_id} enregistré dans l'expérience '{EXPERIENCE}' ({tracking_uri})"
+    )
 
 
 if __name__ == "__main__":

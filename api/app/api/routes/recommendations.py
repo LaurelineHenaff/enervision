@@ -1,4 +1,5 @@
 """Recommandations d'optimisation de la consommation."""
+
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, DbSession

@@ -1,4 +1,5 @@
 """Modèle utilisateur — table SQL pour l'authentification."""
+
 import enum
 from datetime import datetime
 
