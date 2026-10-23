@@ -86,6 +86,26 @@ systemctl start update-staging.service
 
 Ce clone est réservé au déploiement : le script le réinitialise sur `origin/main`, il ne faut pas y travailler. Le clone de travail éventuel se trouve ailleurs (par exemple `~/workspace/enervision`).
 
+### Rôles de la VM
+
+Pour ne pas partager le compte `root`, chaque personne a son compte Linux (`adduser`, clé SSH) et appartient à un ou plusieurs groupes de rôle. `infra/scripts/setup-vm-roles.sh` crée les groupes, les comptes de service, les dossiers et les droits. Il peut être relancé sans risque, il installe `sudo` s'il manque, et il ne prend en entrée que des noms de comptes déjà créés :
+
+```bash
+DEVOPS_USERS="prenom1 prenom2" MLFLOW_USERS="prenom3" MONITORING_USERS="prenom4" \
+  /opt/enervision/infra/scripts/setup-vm-roles.sh
+```
+
+| Rôle | Pour qui | Droits |
+|---|---|---|
+| `devops` | déploiement, CI/CD | `sudo` limité à `systemctl start` et `status` de `update-staging.service`, `status` du minuteur, `journalctl -u update-staging.service` ; groupe `docker` |
+| `mlflow` | entraînement et suivi des modèles | lecture et écriture de `/srv/mlflow`, propriété du compte de service `mlflow` |
+| `monitoring` | supervision (Prometheus, Grafana) | lecture de `/srv/monitoring`, des journaux (`systemd-journal`, `adm`) |
+
+- Le groupe `docker` donne les droits de root sur la machine : le rôle `devops` est réservé aux personnes de confiance.
+- Les comptes de service `mlflow` et `monitoring` n'ont ni mot de passe ni shell. Le script affiche leur `uid:gid`, à passer à `user:` dans le compose quand MLFLOW et Prometheus seront déployés ; ce script n'installe aucun de ces services.
+- Retirer une personne d'un rôle se fait à la main (`gpasswd -d <compte> <groupe>`) : le script ne supprime rien.
+- Hors périmètre, à traiter ensuite : interdire la connexion SSH de `root` et par mot de passe. La production sur AWS n'a pas de SSH (déploiement par SSM) et n'est pas concernée.
+
 ### Accès aux images GHCR
 
 Les images GHCR d'un dépôt public sont privées par défaut. Le staging utilise un `docker login` avec un jeton personnel plutôt qu'un passage en public :
