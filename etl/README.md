@@ -22,7 +22,7 @@ Depuis `etl/`, environnement virtuel activé.
 
 ```bash
 python -m pytest && ruff check .          # tests et lint, sans réseau ni base, moins d'une seconde
-dvc pull && python -m pipeline.clean_history --output /tmp/essai.parquet   # nettoyage sur le vrai fichier
+dvc pull && python -m pipeline clean-history --output /tmp/essai.parquet   # nettoyage sur le vrai fichier
 docker build -t etl-local . && docker run -d --rm --name etl-local -p 8001:8000 etl-local
 docker inspect --format '{{.State.Health.Status}}' etl-local               # healthy après environ 30 s
 docker rm -f etl-local
@@ -41,9 +41,16 @@ Pile complète : `docker compose up -d` à la racine, puis `docker ps` doit mont
 - `mock_client/client.py` : client HTTP unique (URL, authentification facultative, délai).
 - `mock_client/services/` : une fonction par endpoint du mock. Elles lèvent `httpx2.HTTPStatusError` ou `httpx2.RequestError`, à l'appelant de décider. Les horodatages envoyés doivent porter un fuseau (convertis en UTC).
 - `mock_client/schemas/` : réponses du mock, vérifiées sur ses réponses réelles.
-- `pipeline/clean_history.py` : nettoyage de l'historique, règles dans sa docstring.
+- `pipeline/cleaning.py` : règles de nettoyage, fonctions pures testées sans fichier.
+- `pipeline/jobs/` : un module par traitement, avec `main(argv)`. Lancement : `python -m pipeline <traitement>` (aujourd'hui `clean-history`).
 - `pipeline/provided_files/`, `pipeline/edited_files/` : données suivies par DVC, voir [`docs/donnees-dvc.md`](../docs/donnees-dvc.md).
 
 ## Nettoyage de l'historique
 
-`dvc repro` (ou `python -m pipeline.clean_history`). Chaque colonne brute est conservée, avec `<colonne>_clean` et `<colonne>_source` (`measured`, `recovered_from_euros`, `interpolated`, `missing`). Sur le fichier actuel, pour la consommation : 119 807 mesurées, 353 retrouvées par les euros (0,15 €/kWh), 1 072 interpolées, 1 415 vides. Les 1 792 zéros sont de vraies coupures et sont conservés.
+`dvc repro` (ou `python -m pipeline clean-history`). Chaque colonne brute est conservée, avec `<colonne>_clean` et `<colonne>_source` (`measured`, `recovered_from_euros`, `interpolated`, `missing`). Sur le fichier actuel, pour la consommation : 119 807 mesurées, 353 retrouvées par les euros (0,15 €/kWh), 1 072 interpolées, 1 415 vides. Les 1 792 zéros sont de vraies coupures et sont conservés.
+
+## Ajouter un traitement
+
+1. Créer `pipeline/jobs/<nom>.py` avec `main(argv)` ; garder les règles dans un module sans fichier ni réseau pour les tester.
+2. L'inscrire dans `JOBS` de `pipeline/__main__.py`.
+3. Planification : un traitement qui boucle (collecte toutes les 10 à 60 s, ce que cron ne sait pas faire) devient un service compose sur la même image, avec `command: python -m pipeline <traitement>`. Un traitement ponctuel se lance avec `docker compose run --rm etl python -m pipeline <traitement>`, ou par un minuteur systemd sur la VM.

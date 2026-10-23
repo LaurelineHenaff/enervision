@@ -1,9 +1,10 @@
-"""Nettoyage de l'historique : fuseaux, kWh retrouvés par les euros, trous courts et longs."""
+"""Nettoyage de l'historique : règles (cleaning) et traitement complet (jobs.clean_history)."""
 import numpy as np
 import pandas as pd
 import pytest
 
-from pipeline import clean_history as ch
+from pipeline import cleaning as ch
+from pipeline.jobs import clean_history as job
 
 NAN = np.nan
 
@@ -83,7 +84,7 @@ def test_cli_ecrit_un_parquet(tmp_path):
     entree, sortie = tmp_path / "in.csv", tmp_path / "sortie" / "out.parquet"
     relevés([1.0, NAN, 3.0]).to_csv(entree, index=False)
 
-    ch.main(["--input", str(entree), "--output", str(sortie)])
+    job.main(["--input", str(entree), "--output", str(sortie)])
 
     ecrit = pd.read_parquet(sortie)
     assert {"consumption_kwh", "consumption_kwh_clean", "consumption_kwh_source"} <= set(ecrit)

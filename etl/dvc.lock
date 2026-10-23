@@ -1,12 +1,16 @@
 schema: '2.0'
 stages:
   clean_history:
-    cmd: python -m pipeline.clean_history
+    cmd: python -m pipeline clean-history
     deps:
-    - path: pipeline/clean_history.py
+    - path: pipeline/cleaning.py
       hash: md5
-      md5: f5bdd771cf9e8bb83fafceacacd1abc0
-      size: 5591
+      md5: 598f30697515f339648432b4d57f4acd
+      size: 3699
+    - path: pipeline/jobs/clean_history.py
+      hash: md5
+      md5: 1b10fa4abb96b962cc18a649de781d97
+      size: 1491
     - path: pipeline/provided_files/all_sites_combined.csv
       hash: md5
       md5: 2d904fb46164ea17206748a725aec4ab
