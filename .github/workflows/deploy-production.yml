@@ -208,7 +208,7 @@ jobs:
             --instance-ids "$INSTANCE_ID" \
             --document-name AWS-RunShellScript \
             --comment "Déploiement $TAG (${SHA::7})" \
-            --parameters "$(jq -n --arg s "echo $b64 | base64 -d | bash" '{commands: [$s], executionTimeout: ["600"]}')" \
+            --parameters "$(jq -n --arg s "bash -c \"\$(echo $b64 | base64 -d)\"" '{commands: [$s], executionTimeout: ["600"]}')" \
             --query Command.CommandId --output text)
           echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
 
