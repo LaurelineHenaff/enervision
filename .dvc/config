@@ -3,4 +3,4 @@
 ['remote "preprod"']
     url = ssh://10.43.43.50/var/lib/enervision/dvc
 ['remote "prod"']
-    url = s3://enervision-production-data-136825753193
+    url = s3://enervision-production-data-136825753193/dvc

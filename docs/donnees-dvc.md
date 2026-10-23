@@ -8,7 +8,7 @@ Les fichiers lourds ne vont pas dans Git. DVC les suit : Git garde un petit fich
 |---|---|---|---|
 | (cache local) | développement | `.dvc/cache` | rempli par `dvc pull` ou `dvc repro` |
 | `preprod` (défaut) | VM de préproduction | `ssh://10.43.43.50/var/lib/enervision/dvc` | dossier à créer sur la VM, non vérifié |
-| `prod` | production | `s3://enervision-production-data-136825753193` | non vérifié, accès AWS indisponible |
+| `prod` | production | `s3://enervision-production-data-136825753193/dvc` | bucket défini dans `infra/terraform/aws/s3.tf` (préfixe `dvc/`), existence et droits d'écriture non vérifiés |
 
 Aucun chemin ni identifiant personnel n'est versionné. Chacun renseigne les siens dans `.dvc/config.local` (ignoré par Git) :
 
@@ -40,4 +40,4 @@ dvc add chemin/fichier      # suit un nouveau fichier, puis git add du .dvc cré
 
 - Créer le dossier de stockage sur la VM de préproduction et donner un accès SSH à l'équipe (la VM n'a qu'un compte root à ce jour), puis lancer `dvc push`.
 - Tant que personne n'a poussé, les fichiers fournis ne sont disponibles que sur le poste qui les a ajoutés : ils viennent de l'école, qui peut les redonner.
-- Créer le bucket de production et ses droits IAM avant de s'en servir.
+- Vérifier que le bucket existe (`terraform output data_bucket`) et que les membres peuvent écrire sous `dvc/` : la politique de l'instance EC2 n'y donne que la lecture, la poussée se fait depuis les postes avec leurs propres droits.
