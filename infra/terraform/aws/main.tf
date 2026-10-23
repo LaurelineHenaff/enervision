@@ -105,7 +105,8 @@ resource "aws_instance" "main" {
   user_data_replace_on_change = false
 
   metadata_options {
-    http_tokens = "required" # IMDSv2 uniquement
+    http_tokens                 = "required" # IMDSv2 uniquement
+    http_put_response_hop_limit = 2          # les conteneurs Docker obtiennent les droits du rôle de l'instance
   }
 
   root_block_device {
