@@ -4,7 +4,7 @@ import importlib
 from mock_client import config
 
 
-def test_lit_les_variables_d_environnement(monkeypatch):
+def test_reads_environment_variables(monkeypatch):
     monkeypatch.setenv("MOCK_API_URL", "http://autre-mock.test")
     monkeypatch.setenv("MOCK_API_USERNAME", "bob")
     monkeypatch.setenv("MOCK_API_PASSWORD", "mdp")
@@ -18,7 +18,7 @@ def test_lit_les_variables_d_environnement(monkeypatch):
         importlib.reload(config)
 
 
-def test_url_par_defaut_et_sans_slash_final(monkeypatch):
+def test_default_url_without_trailing_slash(monkeypatch):
     monkeypatch.delenv("MOCK_API_URL", raising=False)
     monkeypatch.setattr("dotenv.load_dotenv", lambda *a, **k: False)
     try:

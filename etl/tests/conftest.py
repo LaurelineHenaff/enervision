@@ -19,7 +19,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 
-SITE_EXEMPLE = {
+SITE_EXAMPLE = {
     "site_id": "SITE001",
     "site_type": "office",
     "site_name": "Bureau Paris",
@@ -46,20 +46,20 @@ def mock_api(monkeypatch):
 
     Renvoie la liste des requêtes reçues, pour vérifier l'URL et l'authentification.
     """
-    requetes: list[httpx2.Request] = []
+    received_requests: list[httpx2.Request] = []
 
     def _mock_api(handler):
-        vrai_client = httpx2.AsyncClient
+        real_client = httpx2.AsyncClient
 
-        def enregistrer(request):
-            requetes.append(request)
+        def record(request):
+            received_requests.append(request)
             return handler(request)
 
-        def faux_client(**kwargs):
-            return vrai_client(transport=httpx2.MockTransport(enregistrer), **kwargs)
+        def fake_client(**kwargs):
+            return real_client(transport=httpx2.MockTransport(record), **kwargs)
 
-        monkeypatch.setattr(httpx2, "AsyncClient", faux_client)
-        return requetes
+        monkeypatch.setattr(httpx2, "AsyncClient", fake_client)
+        return received_requests
 
     return _mock_api
 
@@ -67,11 +67,11 @@ def mock_api(monkeypatch):
 NAN = np.nan
 
 
-def relevés(kwh, euros=None, site="SITE001", debut="2023-01-01 00:00:00"):
+def make_readings(kwh, euros=None, site="SITE001", start="2023-01-01 00:00:00"):
     n = len(kwh)
     return pd.DataFrame(
         {
-            "timestamp": pd.date_range(debut, periods=n, freq="h").strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": pd.date_range(start, periods=n, freq="h").strftime("%Y-%m-%d %H:%M:%S"),
             "site_id": site,
             "consumption_kwh": kwh,
             "consumption_euros": euros if euros is not None else [NAN] * n,
@@ -80,19 +80,19 @@ def relevés(kwh, euros=None, site="SITE001", debut="2023-01-01 00:00:00"):
     )
 
 
-def metadonnees(anomalies=(), total=3, debut="2023-01-01T00:00:00", fin="2023-01-01T02:00:00"):
+def make_metadata(anomalies=(), total=3, start="2023-01-01T00:00:00", end="2023-01-01T02:00:00"):
     return {
         "frequency": "1h",
         "sites": {
             "SITE001": {
                 "total_records": total,
-                "start_date": debut,
-                "end_date": fin,
+                "start_date": start,
+                "end_date": end,
                 "anomalies": list(anomalies),
             }
         },
     }
 
 
-def anomalie(timestamp, type_, description, severity="critical"):
+def make_anomaly(timestamp, type_, description, severity="critical"):
     return {"timestamp": timestamp, "type": type_, "severity": severity, "description": description}

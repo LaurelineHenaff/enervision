@@ -17,7 +17,7 @@ JOBS = {"clean-history": "pipeline.jobs.clean_history"}
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if not argv or argv[0] not in JOBS:
-        print(f"Usage : python -m pipeline {{{'|'.join(JOBS)}}} [options]", file=sys.stderr)
+        print(f"Usage: python -m pipeline {{{'|'.join(JOBS)}}} [options]", file=sys.stderr)
         return 2
     importlib.import_module(JOBS[argv[0]]).main(argv[1:])
     return 0

@@ -8,6 +8,6 @@ def test_health(client):
     assert response.json()["status"] == "healthy"
 
 
-@pytest.mark.parametrize("chemin", ["/docs", "/redoc", "/openapi.json", "/sites", "/readings"])
-def test_aucune_autre_route(client, chemin):
-    assert client.get(chemin).status_code == 404
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json", "/sites", "/readings"])
+def test_no_other_route(client, path):
+    assert client.get(path).status_code == 404

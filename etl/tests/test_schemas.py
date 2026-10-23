@@ -3,39 +3,39 @@ import pytest
 from pydantic import ValidationError
 
 from mock_client.schemas.site import Site
-from tests.conftest import SITE_EXEMPLE
+from tests.conftest import SITE_EXAMPLE
 
 
-def test_site_valide():
-    site = Site.model_validate(SITE_EXEMPLE)
+def test_valid_site():
+    site = Site.model_validate(SITE_EXAMPLE)
     assert site.site_id == "SITE001"
     assert site.capacity_kw == 250.0
 
 
-def test_capacite_convertie_en_float():
-    site = Site.model_validate({**SITE_EXEMPLE, "capacity_kw": "120"})
+def test_capacity_converted_to_float():
+    site = Site.model_validate({**SITE_EXAMPLE, "capacity_kw": "120"})
     assert site.capacity_kw == 120.0
     assert isinstance(site.capacity_kw, float)
 
 
-def test_champs_inconnus_ignores():
-    site = Site.model_validate({**SITE_EXEMPLE, "champ_en_plus": 42})
+def test_unknown_fields_ignored():
+    site = Site.model_validate({**SITE_EXAMPLE, "champ_en_plus": 42})
     assert "champ_en_plus" not in site.model_dump()
 
 
-@pytest.mark.parametrize("champ", list(SITE_EXEMPLE))
-def test_champ_obligatoire_manquant(champ):
-    donnees = {k: v for k, v in SITE_EXEMPLE.items() if k != champ}
+@pytest.mark.parametrize("field", list(SITE_EXAMPLE))
+def test_missing_required_field(field):
+    data = {k: v for k, v in SITE_EXAMPLE.items() if k != field}
     with pytest.raises(ValidationError):
-        Site.model_validate(donnees)
+        Site.model_validate(data)
 
 
-def test_capacite_non_numerique_refusee():
+def test_non_numeric_capacity_rejected():
     with pytest.raises(ValidationError):
-        Site.model_validate({**SITE_EXEMPLE, "capacity_kw": "beaucoup"})
+        Site.model_validate({**SITE_EXAMPLE, "capacity_kw": "beaucoup"})
 
 
-def test_etat_global_des_capteurs_inconnu_refuse():
+def test_unknown_overall_sensor_state_rejected():
     from mock_client.schemas.sensor import SiteSensors
 
     with pytest.raises(ValidationError):

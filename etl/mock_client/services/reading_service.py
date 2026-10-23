@@ -6,10 +6,10 @@ from mock_client.schemas.reading import Reading
 LIMIT_MAX = 1000
 
 
-def _en_utc(moment: datetime) -> str:
+def _to_utc_iso(moment: datetime) -> str:
     # Le mock raisonne en UTC : un horodatage sans fuseau serait interprété à tort
     if moment.tzinfo is None:
-        raise ValueError("L'horodatage doit porter un fuseau horaire")
+        raise ValueError("The timestamp must carry a timezone")
     return moment.astimezone(UTC).isoformat()
 
 
@@ -31,14 +31,14 @@ async def get_readings(
     interroger un site à la fois, sur une fenêtre fixe.
     """
     if not 1 <= limit <= LIMIT_MAX:
-        raise ValueError(f"limit doit être compris entre 1 et {LIMIT_MAX}")
+        raise ValueError(f"limit must be between 1 and {LIMIT_MAX}")
 
     params: dict[str, str | int] = {"limit": limit}
     if site_id:
         params["site_id"] = site_id
     if start_time:
-        params["start_time"] = _en_utc(start_time)
+        params["start_time"] = _to_utc_iso(start_time)
     if end_time:
-        params["end_time"] = _en_utc(end_time)
+        params["end_time"] = _to_utc_iso(end_time)
 
     return [Reading.model_validate(item) for item in await get_json("/readings", params)]

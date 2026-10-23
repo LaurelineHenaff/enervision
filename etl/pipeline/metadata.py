@@ -46,19 +46,19 @@ def check_against_metadata(df: pd.DataFrame, metadata: dict) -> list[str]:
     """Écarts entre les données (horodatages en UTC) et ce que les métadonnées annoncent."""
     problems = []
     if metadata.get("frequency") != "1h":
-        problems.append(f"fréquence annoncée {metadata.get('frequency')!r}, une heure attendue")
+        problems.append(f"frequency announced {metadata.get('frequency')!r}, one hour expected")
 
     sites = metadata.get("sites", {})
     for site_id in sorted(set(df["site_id"]) - set(sites)):
-        problems.append(f"{site_id} : absent des métadonnées")
+        problems.append(f"{site_id}: absent from the metadata")
 
     for site_id, site in sites.items():
         rows = df[df["site_id"] == site_id]
         if len(rows) != site["total_records"]:
-            problems.append(f"{site_id} : {len(rows)} lignes, {site['total_records']} annoncées")
+            problems.append(f"{site_id}: {len(rows)} rows, {site['total_records']} announced")
         if rows.empty:
             continue
         start, end = normalize_timestamps(pd.Series([site["start_date"], site["end_date"]]))
         if rows["timestamp"].min() != start or rows["timestamp"].max() != end:
-            problems.append(f"{site_id} : période {rows['timestamp'].min()} à {rows['timestamp'].max()}, {start} à {end} annoncée")
+            problems.append(f"{site_id}: period {rows['timestamp'].min()} to {rows['timestamp'].max()}, {start} to {end} announced")
     return problems

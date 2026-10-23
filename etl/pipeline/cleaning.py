@@ -83,14 +83,14 @@ def clean(df: pd.DataFrame, metadata: dict | None = None) -> pd.DataFrame:
 
     duplicates = int(d.duplicated(["site_id", "timestamp"]).sum())
     if duplicates:
-        logger.warning("%d doublons (site, horodatage) supprimés, le premier est gardé", duplicates)
+        logger.warning("%d duplicates (site, timestamp) removed, the first one is kept", duplicates)
         d = d.drop_duplicates(["site_id", "timestamp"], keep="first")
     d = d.sort_values(["site_id", "timestamp"]).reset_index(drop=True)
 
     # L'interpolation compte des lignes : elle suppose un relevé par heure sans ligne absente
     irregular = int((d.groupby("site_id")["timestamp"].diff().dropna() != pd.Timedelta("1h")).sum())
     if irregular:
-        logger.warning("%d intervalles différents d'une heure : les trous peuvent être sous-estimés", irregular)
+        logger.warning("%d intervals different from one hour: gaps may be underestimated", irregular)
 
     in_outage = None
     if metadata is not None:

@@ -24,9 +24,9 @@ DEFAULT_OUTPUT = PIPELINE_DIR / "edited_files" / "energy_consumption_cleaned.par
 def summarize(df: pd.DataFrame) -> None:
     for col in [CONSUMPTION_COL, *WEATHER_COLS]:
         if f"{col}_source" in df:
-            logger.info("%s : %s", col, df[f"{col}_source"].value_counts().to_dict())
+            logger.info("%s: %s", col, df[f"{col}_source"].value_counts().to_dict())
     if "anomaly_type" in df:
-        logger.info("anomalies étiquetées (lignes) : %s", df["anomaly_type"].value_counts().to_dict())
+        logger.info("labelled anomalies (rows): %s", df["anomaly_type"].value_counts().to_dict())
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -37,17 +37,17 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-    logger.info("Lecture de %s et %s", args.input, args.metadata)
+    logger.info("Reading %s and %s", args.input, args.metadata)
     metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
     cleansed = clean(pd.read_csv(args.input), metadata)
 
     problems = check_against_metadata(cleansed, metadata)
     for problem in problems:
-        logger.warning("écart avec les métadonnées : %s", problem)
+        logger.warning("difference with the metadata: %s", problem)
     if not problems:
-        logger.info("contrôle des métadonnées : totaux, périodes et fréquence conformes")
+        logger.info("metadata check: totals, periods and frequency match")
     summarize(cleansed)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     cleansed.to_parquet(args.output, engine="pyarrow", index=False)
-    logger.info("%d lignes écrites dans %s", len(cleansed), args.output)
+    logger.info("%d rows written to %s", len(cleansed), args.output)
