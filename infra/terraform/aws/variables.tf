@@ -53,5 +53,5 @@ variable "create_github_oidc_provider" {
 variable "github_oidc_sub_prefix" {
   description = "Préfixe du claim sub OIDC de GitHub. Le dépôt utilise le format immuable (noms suivis des identifiants numériques) : valeur donnée par gh api repos/<org>/<depot>/actions/oidc/customization/sub."
   type        = string
-  default     = "repo:projet-piscine-eadl-enervision@344791702/enervision@1425243299"
+  default     = "repo:projet-piscine-eadl-enervision@344791702/smart-energy-optimizer@1425243299"
 }
