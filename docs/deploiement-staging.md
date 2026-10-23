@@ -10,7 +10,7 @@ L'API du staging est accessible depuis le réseau de l'école : http://10.43.43.
 merge sur main -> CI verte -> publish-images.yml -> image sur GHCR -> minuteur de la VM -> conteneurs relancés
 ```
 
-1. Un merge sur `main` dont la CI est verte lance `publish-images.yml`, qui construit une image par module (dossier avec un `Dockerfile`) et la publie sur GHCR : `ghcr.io/projet-piscine-eadl-enervision/enervision/<module>`, avec les tags `main` et `sha-<commit>`.
+1. Un merge sur `main` dont la CI est verte lance `publish-images.yml`, qui construit une image par module (dossier avec un `Dockerfile`) et la publie sur GHCR : `ghcr.io/projet-piscine-eadl-enervision/smart-energy-optimizer/<module>`, avec les tags `main` et `sha-<commit>`.
 2. Toutes les 2 minutes, `update-staging.timer` lance `infra/scripts/update-staging.sh` sur la VM : il aligne le dépôt sur `origin/main`, tire les images puis relance les conteneurs modifiés. Un merge est donc visible sur le staging une fois la CI et la publication terminées, avec au plus 2 minutes de minuteur en plus : le sha de `/health` le confirme.
 
 La suite (recette, release, production, retour arrière) est dans [`mise-en-production.md`](mise-en-production.md).
@@ -42,7 +42,7 @@ L'environnement (`dev`, `staging` ou `production`) vient de la variable `APP_ENV
 
 ## Contrat pour les compose
 
-Les services du `docker-compose.staging.yml` racine (le `docker-compose.yml` est le compose de développement : base seule, mot de passe par défaut) référencent les images publiées, par exemple `image: ghcr.io/projet-piscine-eadl-enervision/enervision/etl:${IMAGE_TAG:-main}`. Un `build:` seul ne serait pas mis à jour par ce mécanisme.
+Les services du `docker-compose.staging.yml` racine (le `docker-compose.yml` est le compose de développement : base seule, mot de passe par défaut) référencent les images publiées, par exemple `image: ghcr.io/projet-piscine-eadl-enervision/smart-energy-optimizer/etl:${IMAGE_TAG:-main}`. Un `build:` seul ne serait pas mis à jour par ce mécanisme.
 
 ## Contenu de `/etc/enervision/staging.env`
 
@@ -65,7 +65,7 @@ NG_ALLOWED_HOSTS=localhost,127.0.0.1,10.43.43.50
 
 - `POSTGRES_PASSWORD` : un mot de passe généré sur la VM (`openssl rand -base64 24 | tr -d '/+='`), différent de celui du développement.
 - `MOCK_API_*` : le mock interne de l'école ne demande pas d'identifiants. Le compose exige pourtant des valeurs non vides pour toutes les variables `MOCK_API_*` (l'ETL en a besoin), d'où le `-`. Avec l'URL publique du mock (`https://api-mock.charlieandre.fr`), mettre les vrais identifiants, qui sont dans les notes Teams.
-- `COMPOSE_PROFILES=apps` active `etl` et `frontend`. Leurs images doivent être publiées sur GHCR (vérifier avec `docker pull ghcr.io/projet-piscine-eadl-enervision/enervision/etl:main`), sinon le `pull` échoue.
+- `COMPOSE_PROFILES=apps` active `etl` et `frontend`. Leurs images doivent être publiées sur GHCR (vérifier avec `docker pull ghcr.io/projet-piscine-eadl-enervision/smart-energy-optimizer/etl:main`), sinon le `pull` échoue.
 - `NG_ALLOWED_HOSTS` : liste des noms ou IP sous lesquels le frontend est joint (`10.43.43.50` en staging). Sans elle, le serveur de rendu refuse les requêtes qui arrivent avec l'IP de la VM.
 - Sur l'hôte, l'API écoute sur le port 8000, l'ETL sur le 8001 et le frontend sur le 4000.
 
@@ -98,7 +98,7 @@ Les images GHCR d'un dépôt public sont privées par défaut. Le staging utilis
    unset T
    chmod 600 /root/.docker/config.json
    ```
-3. Vérifier : `docker pull ghcr.io/projet-piscine-eadl-enervision/enervision/api:main`.
+3. Vérifier : `docker pull ghcr.io/projet-piscine-eadl-enervision/smart-energy-optimizer/api:main`.
 
 Le jeton est stocké en clair dans `/root/.docker/config.json` (lisible par root seulement). Il expire : sans renouvellement, le `pull` du minuteur échoue sans bruit et le staging cesse de se mettre à jour. Le renouveler avant l'échéance en refaisant l'étape 2. Il est lié au compte qui l'a créé.
 

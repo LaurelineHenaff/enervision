@@ -72,7 +72,7 @@ La page `/docs` du mock reste la référence pour les paramètres et les formats
 | `ml` | entraînement des modèles (tâche ponctuelle) | oui | `.../enervision/ml` | profil `ml`, à la demande : `docker compose run --rm ml` (pas lancé par `up -d`) | WIP | WIP |
 | `mlflow` | suivi des expériences et registre des modèles (`ghcr.io/mlflow/mlflow`) | image officielle | non | `v3.17.2`, port 5000 | WIP | WIP |
 
-Préfixe des images : `ghcr.io/projet-piscine-eadl-enervision/enervision`.
+Préfixe des images : `ghcr.io/projet-piscine-eadl-enervision/smart-energy-optimizer`, soit `ghcr.io/<organisation>/<nom du dépôt>` : les workflows le calculent depuis le nom du dépôt. Si le dépôt est renommé, les images changent de préfixe et le compose de staging doit suivre (ou `IMAGE_PREFIX` dans `staging.env`).
 
 Le flux de données prévu : le mock alimente l'ETL, qui écrit dans la base ; l'API lit la base et sert le frontend ; le module ML s'entraîne sur la base. Aujourd'hui, l'API n'expose que ses routes de santé et l'ETL la liste des sites.
 
