@@ -74,12 +74,28 @@ async def test_erreur_serveur_propagee(mock_api):
         await site_service.get_all_sites()
 
 
-async def test_reseau_injoignable_propage(mock_api):
+@pytest.mark.parametrize(
+    "erreur", [httpx2.ConnectError("connexion refusée"), httpx2.ReadTimeout("délai dépassé")]
+)
+async def test_reseau_injoignable_ou_trop_lent_propage(mock_api, erreur):
     def handler(request):
-        raise httpx2.ConnectError("connexion refusée", request=request)
+        erreur.request = request
+        raise erreur
 
     mock_api(handler)
     with pytest.raises(httpx2.RequestError):
+        await site_service.get_all_sites()
+
+
+async def test_donnees_invalides_refusees(mock_api):
+    mock_api(lambda request: httpx2.Response(200, json=[{**SITE_EXEMPLE, "capacity_kw": "beaucoup"}]))
+    with pytest.raises(ValidationError):
+        await site_service.get_all_sites()
+
+
+async def test_reponse_inattendue_refusee(mock_api):
+    mock_api(lambda request: httpx2.Response(200, json={"detail": "autre format"}))
+    with pytest.raises(ValidationError):
         await site_service.get_all_sites()
 
 
