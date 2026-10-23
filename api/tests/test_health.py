@@ -1,5 +1,5 @@
 """Routes /health et /health/mock (l'API Mock est simulée, aucun appel réseau)."""
-import httpx
+import httpx2
 import pytest
 
 from app.api.routes import health
