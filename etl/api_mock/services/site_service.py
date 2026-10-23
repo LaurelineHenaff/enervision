@@ -1,4 +1,4 @@
-import httpx
+import httpx2
 
 from api_mock.config import MOCK_API_PASSWORD, MOCK_API_URL, MOCK_API_USERNAME
 from api_mock.schemas.site import Site
@@ -8,9 +8,9 @@ async def get_all_sites() -> list[Site]:
     if not MOCK_API_USERNAME or not MOCK_API_PASSWORD:
         raise RuntimeError("Identifiants API Mock non configurés")
 
-    async with httpx.AsyncClient(
+    async with httpx2.AsyncClient(
         timeout=10.0,
-        auth=httpx.BasicAuth(
+        auth=httpx2.BasicAuth(
             MOCK_API_USERNAME,
             MOCK_API_PASSWORD
         )
