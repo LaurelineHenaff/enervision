@@ -22,3 +22,7 @@ output "ami_id" {
   description = "Image Debian 13 retenue."
   value       = aws_instance.main.ami
 }
+
+output "data_bucket" {
+  value = aws_s3_bucket.data.bucket
+}
