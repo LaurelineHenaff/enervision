@@ -236,6 +236,10 @@ pre-commit install
 
 Ces hooks ne remplacent pas la CI (`git commit --no-verify` les contourne) et ne peuvent pas contrôler le titre de la PR, qui est vérifié sur GitHub. Quand la version de `ruff` change dans les `requirements-dev.txt`, change aussi celle de `.pre-commit-config.yaml`.
 
+### 7 bis. Récupérer les données volumineuses (DVC)
+
+Les jeux de données de `etl/` (historique 2023-2024) ne sont pas dans Git : ils sont suivis avec DVC. Pour les obtenir, installer DVC, configurer ses accès (VM de préproduction et AWS) puis lancer `dvc pull`. Le pas à pas est dans [`docs/donnees-dvc.md`](docs/donnees-dvc.md), le test de l'ETL en local dans [`etl/README.md`](etl/README.md).
+
 ## Staging
 
 Le staging est déployé automatiquement sur la VM de l'école : à chaque merge sur `main` dont la CI est verte, une image Docker par module ayant un `Dockerfile` est publiée sur GHCR, puis la VM tire les images toutes les 2 minutes et relance les conteneurs. La base, l'API, l'ETL et le frontend y tournent ; `ml` n'a pas de service sur le staging. Les migrations de la base y sont appliquées à chaque déploiement, par une image `db` du même tag.
