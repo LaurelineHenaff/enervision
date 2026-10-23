@@ -20,7 +20,7 @@ Ce qui est **déjà fait** par l'admin (rien à refaire) :
 | Région | `eu-west-3` (Paris) |
 | Nom du profil AWS | `enervision` |
 | Bucket du state Terraform | `enervision-tfstate-dreamteam2026` |
-| Dépôt GitHub | `projet-piscine-eadl-enervision/smart-energy-optimizer` |
+| Dépôt GitHub | `projet-piscine-eadl-enervision/enervision` |
 
 ---
 
@@ -49,7 +49,7 @@ sudo apt update && sudo apt install -y curl unzip python3 git
 
 # Récupérer le dépôt (si ce n'est pas déjà fait)
 mkdir -p ~/projects && cd ~/projects
-git clone git@github.com:projet-piscine-eadl-enervision/smart-energy-optimizer.git
+git clone git@github.com:projet-piscine-eadl-enervision/enervision.git
 cd enervision
 
 # Installer les outils (sans sudo !)
@@ -58,138 +58,162 @@ source ~/.bashrc
 aws --version && terraform version && gh --version
 ```
 
-Le script installe tout dans `~/.local/bin` et ajoute `export AWS_PROFILE=enervision` à ton
-`~/.bashrc`.
+Ce dossier décrit **où et comment tourne EnerVision** en dehors des postes de développement :
+le staging sur la VM de l'école, la production sur AWS, et ce qui relie les deux (images
+GHCR, GitHub Actions).
 
-**Si ça coince :**
-
-| Erreur | Solution |
+| Je veux… | Je lis… |
 |---|---|
-| `Permission denied` | `chmod +x infra/scripts/install-tools.sh` puis relancer |
-| `$'\r': command not found` / `bad interpreter` | `sed -i 's/\r$//' infra/scripts/install-tools.sh` |
-| `aws: command not found` après l'install | ouvrir un nouveau terminal |
+| obtenir mon accès AWS et préparer mon poste | [`docs/aws-poste-developpeur.md`](../docs/aws-poste-developpeur.md) |
+| comprendre l'organisation d'ensemble | ce fichier |
+| modifier l'infrastructure de production | [`infra/terraform/aws/README.md`](terraform/aws/README.md) |
+| livrer une version ou revenir en arrière | [`docs/mise-en-production.md`](../docs/mise-en-production.md) |
 
-Ne lance **pas** le script avec `sudo` : les outils s'installeraient pour `root`, pas pour toi.
+## Deux environnements
 
-## 3. Installer le plugin Session Manager
+| | Staging (preprod) | Production |
+|---|---|---|
+| Où | VM de l'école (`10.43.43.50`, réseau de l'école) | EC2 AWS, région `eu-west-3` (Paris) |
+| Système | Debian 13 | Debian 13 (même image de base) |
+| Lancement | `docker-compose.staging.yml` | le **même** `docker-compose.staging.yml` |
+| Images | `ghcr.io/…/<module>:main` (dernier commit vert de `main`) | `ghcr.io/…/<module>:vX.Y.Z` (version recettée) |
+| Configuration | `/etc/enervision/staging.env` | `/etc/enervision/production.env` |
+| Mise à jour | automatique après chaque merge sur `main` | release + **approbation** dans GitHub |
+| Accès | SSH sur le réseau de l'école | AWS Session Manager (pas de SSH) |
 
-Il sert à ouvrir un terminal sur la VM de prod, sans SSH. Il demande `sudo` :
+Le principe : **ce qui part en production est exactement ce qui a été testé en staging**. Les
+images ne sont jamais reconstruites pour la prod, elles reçoivent seulement un tag de version.
 
-```bash
-curl -fsSLo /tmp/smp.deb \
-  "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb"
-sudo dpkg -i /tmp/smp.deb
-session-manager-plugin --version
+## Vue d'ensemble
+
+```mermaid
+flowchart LR
+    DEV("👩‍💻 Développeurs<br/>WSL : git, gh, aws, terraform")
+
+    subgraph GH["GitHub"]
+        REPO("Dépôt enervision")
+        ACT("GitHub Actions<br/>ci · publish-images · release · deploy-production")
+        GHCR("GHCR<br/>images api, etl, frontend, ml")
+    end
+
+    subgraph ECOLE["Réseau de l'école"]
+        STG("VM staging<br/>docker compose")
+    end
+
+    subgraph AWS["Compte AWS · eu-west-3"]
+        IDC("IAM Identity Center<br/>groupe developpeurs")
+        STATE("S3 : state Terraform")
+        SSM("Systems Manager")
+        EC2("EC2 production<br/>docker compose")
+    end
+
+    DEV -->|push / PR| REPO
+    REPO --> ACT
+    ACT -->|build + push| GHCR
+    GHCR -->|:main| STG
+    GHCR -->|:vX.Y.Z| EC2
+    ACT -->|OIDC, rôle deploy| SSM
+    SSM -->|commande de déploiement| EC2
+    DEV -->|SSO + MFA| IDC
+    DEV -->|terraform plan/apply| STATE
+    DEV -->|Session Manager| SSM
 ```
 
-(Le paquet `ubuntu_64bit` fonctionne aussi sur Debian.)
+## Organisation du compte AWS
 
-## 4. Se connecter à GitHub
+Un **compte AWS dédié au projet**, en région Paris (`eu-west-3`), financé par des crédits.
+Une alerte de budget prévient par e-mail en cas de dérive.
 
-```bash
-gh auth login
+**Les humains** se connectent par **IAM Identity Center** (SSO) :
+
+- un utilisateur par personne, avec mot de passe et **MFA obligatoire** ;
+- tous dans le groupe `developpeurs`, qui a le rôle `AdministratorAccess` sur le compte ;
+- sur le poste, un profil AWS local nommé `enervision` (`aws configure sso`), renouvelé par
+  `aws sso login` quand la session expire ;
+- le compte **root** n'est pas utilisé au quotidien (MFA activée, identifiants au coffre).
+
+**Les machines** n'ont aucune clé AWS. Elles reçoivent des droits temporaires par un rôle IAM :
+
+| Qui | Comment | Rôle | Ce qu'il peut faire |
+|---|---|---|---|
+| GitHub Actions | jeton **OIDC** de GitHub, environnement `production` uniquement | `enervision-production-deploy` | lancer une commande shell SSM **sur l'instance de prod** et lire son résultat. Rien d'autre. |
+| L'EC2 | *instance profile* | `enervision-production-instance` | s'enregistrer auprès de Systems Manager (agent SSM) |
+
+Il n'y a donc **aucun secret AWS dans GitHub** ni sur les postes : seulement des sessions
+temporaires, liées à une personne ou à un job.
+
+## Ce qui tourne sur AWS
+
+| Élément | Géré par | Rôle |
+|---|---|---|
+| EC2 `t3.large` Debian 13, disque 64 Go chiffré | Terraform | fait tourner base, API, ETL et frontend dans Docker |
+| Security group | Terraform | **aucune entrée** ; sortie 80/443 seulement (GHCR, Debian, SSM, API mock) |
+| Rôles IAM instance et deploy, fournisseur OIDC GitHub | Terraform | voir le tableau ci-dessus |
+| Bucket S3 `enervision-tfstate-dreamteam2026` | créé à la main, une fois | state Terraform partagé (versionné, privé, verrou) |
+| IAM Identity Center, organisation, budget | console, une fois | accès des personnes, alerte de coût |
+
+Le détail des ressources, des variables et des pièges connus est dans
+[`terraform/aws/README.md`](terraform/aws/README.md).
+
+## D'un commit à la production
+
+```mermaid
+flowchart TD
+    A("Merge sur main") --> B("ci.yml : tests")
+    B -->|vert| C("publish-images.yml<br/>images :sha-commit + :main")
+    C --> D("VM staging : recette")
+    D --> E("release.yml (lancé à la main)<br/>tag vX.Y.Z via la GitHub App")
+    E --> F("publish-images.yml (promote)<br/>tag :vX.Y.Z sur les images existantes")
+    E --> G("deploy-production.yml<br/>résumé pour l'approbateur")
+    F --> H
+    G --> H("⏸ approbation : environnement production")
+    H --> I("SSM sur l'EC2 : git checkout du tag,<br/>sauvegarde de la base, docker compose pull + up")
+    I --> J("contrôle de /health :<br/>environment = production, bon commit")
 ```
 
-**GitHub.com** → **SSH** → laisser gh générer une clé SSH (ou *Skip* si `git push` marche
-déjà) → **Login with a web browser**, puis saisir le code affiché sur
-<https://github.com/login/device>.
+Le **retour arrière** utilise le même workflow, lancé à la main avec un tag déjà publié.
+Procédure complète : [`docs/mise-en-production.md`](../docs/mise-en-production.md).
 
-```bash
-gh auth status
+## Où sont les secrets
+
+Aucun secret n'est dans le dépôt. Pour mémoire :
+
+| Secret | Emplacement | Remarque |
+|---|---|---|
+| Variables de prod (mot de passe de la base, identifiants de l'API mock…) | `/etc/enervision/production.env` sur l'EC2, droits `600 root` | créé à la main par Session Manager |
+| Jeton de lecture GHCR (`read:packages`) | `/root/.docker/config.json` sur l'EC2 | jeton personnel, **avec une date d'expiration** : à renouveler s'il expire avant la fin |
+| Clé de la GitHub App de release | secrets de l'organisation (`RELEASE_APP_ID`, `RELEASE_APP_PRIVATE_KEY`) | permet aux tags de déclencher les workflows |
+| State Terraform | bucket S3 privé | peut contenir des valeurs sensibles : jamais dans Git |
+| `terraform.tfvars`, `backend.hcl` | sur le poste de chacun | non versionnés, partagés en message privé |
+
+## Contenu du dossier
+
+```
+infra/
+├── README.md                 ← ce fichier : vue d'ensemble
+├── scripts/
+│   └── install-tools.sh      ← installe AWS CLI, Terraform et gh sur un poste (sans sudo)
+└── terraform/
+    └── aws/                  ← infrastructure de production
+        ├── README.md         ← référence technique Terraform
+        ├── versions.tf  variables.tf  main.tf  outputs.tf
+        ├── user_data.sh      ← premier démarrage de l'EC2 (Docker, agent SSM, clone)
+        ├── backend.hcl.example
+        └── terraform.tfvars.example
+
+docs/
+├── aws-poste-developpeur.md  ← obtenir son accès AWS et préparer son poste
+└── mise-en-production.md     ← release, approbation, retour arrière
+
+.github/workflows/
+├── ci.yml  publish-images.yml  release.yml  deploy-production.yml
 ```
 
-## 5. Se connecter à AWS (SSO)
+## Coûts et fin de projet
 
-```bash
-aws configure sso
-```
+La production coûte environ **35 à 40 $ pour deux semaines** (EC2 `t3.large` allumée en
+continu, disque, IP publique). Le reste (Identity Center, rôles IAM, state S3) est gratuit ou
+négligeable.
 
-| Question | Réponse |
-|---|---|
-| SSO session name | `enervision` |
-| SSO start URL | l'AWS access portal URL (tableau du haut) |
-| SSO region | `eu-west-3` |
-| SSO registration scopes | Entrée (valeur par défaut) |
-| *(le navigateur s'ouvre : connexion + code MFA + Allow)* | |
-| Compte / rôle | le compte du projet, `AdministratorAccess` |
-| Default client Region | `eu-west-3` |
-| CLI default output format | `json` |
-| Profile name | **`enervision`** (exactement ce nom) |
-
-Si la page du navigateur finit en erreur, relance avec `aws configure sso --use-device-code`
-et saisis le code affiché dans ton navigateur.
-
-**Vérification :**
-
-```bash
-aws sts get-caller-identity
-```
-
-Tu dois voir le numéro du compte et ton prénom à la fin de la ligne `Arn`.
-
-## 6. Préparer Terraform
-
-```bash
-cd infra/terraform/aws
-```
-
-Crée ton fichier `backend.hcl` (il n'est pas dans Git) :
-
-```bash
-sed -i 's/<suffixe-unique>/dreamteam2026/' backend.hcl
-cat backend.hcl     # doit afficher bucket = "enervision-tfstate-dreamteam2026"
-```
-
-Récupère `terraform.tfvars` auprès de Lea **en message privé** (il contient les identifiants
-du VPC et du subnet, et n'est pas dans Git), place-le dans ce dossier, puis :
-
-```bash
-terraform init -backend-config=backend.hcl
-terraform plan
-```
-
-Le `plan` doit afficher **`No changes.`** : ça veut dire que tu vois bien la même infra que
-le reste de l'équipe. S'il propose de créer ou supprimer des choses, **ne fais rien** et
-préviens l'équipe.
-
-### Règles de l'équipe
-
-- `terraform plan` : autant que tu veux, ça ne modifie rien.
-- `terraform apply` : **jamais sans en parler à l'équipe**, toujours depuis une branche à jour
-  avec `main`, et après avoir relu le plan.
-- `Error acquiring the state lock` : quelqu'un d'autre fait un `plan`/`apply`, attends.
-- Ne commite jamais `backend.hcl`, `*.tfvars`, `*.tfstate` ni `tfplan` (déjà dans le `.gitignore`).
-
-## 7. Se connecter à la VM de prod
-
-```bash
-cd infra/terraform/aws
-aws ssm start-session --target "$(terraform output -raw instance_id)"
-```
-
-Une fois dedans, tape `bash` pour un shell plus confortable. Tu es `ssm-user` : utilise
-`sudo` pour les commandes d'admin. `exit` pour sortir.
-
-> La VM de prod n'est pas un terrain de jeu : teste d'abord sur la VM de preprod de l'école.
-> Tout ce qui est fait à la main sur la prod doit être noté (ou mieux, mis dans le code).
-
----
-
-## Au quotidien
-
-Ta session AWS expire au bout de quelques heures. Quand une commande répond
-`Token has expired` ou `The SSO session ... has expired` :
-
-```bash
-aws sso login
-```
-
-C'est tout : pas besoin de refaire `aws configure sso`.
-
-| Je veux… | Commande |
-|---|---|
-| vérifier qui je suis sur AWS | `aws sts get-caller-identity` |
-| renouveler ma session | `aws sso login` |
-| voir ce que Terraform changerait | `terraform plan` (dans `infra/terraform/aws`) |
-| ouvrir un terminal sur la prod | `aws ssm start-session --target <instance-id>` |
-| ouvrir la console AWS dans le navigateur | passer par l'AWS access portal URL |
+À la fin du projet, tout se supprime : voir *Supprimer l'infrastructure* dans
+[`terraform/aws/README.md`](terraform/aws/README.md#supprimer-linfrastructure-fin-de-projet).

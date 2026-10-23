@@ -44,14 +44,14 @@ variable "api_ingress_cidrs" {
   default     = []
 }
 
-variable "github_repository" {
-  description = "Dépôt GitHub autorisé à déployer en production (organisation/dépôt)."
-  type        = string
-  default     = "projet-piscine-eadl-enervision/smart-energy-optimizer"
-}
-
 variable "create_github_oidc_provider" {
   description = "Créer le fournisseur OIDC de GitHub. Un seul est possible par compte AWS : mettre false s'il existe déjà."
   type        = bool
   default     = true
+}
+
+variable "github_oidc_sub_prefix" {
+  description = "Préfixe du claim sub OIDC de GitHub. Le dépôt utilise le format immuable (noms suivis des identifiants numériques) : valeur donnée par gh api repos/<org>/<depot>/actions/oidc/customization/sub."
+  type        = string
+  default     = "repo:projet-piscine-eadl-enervision@344791702/enervision@1425243299"
 }
