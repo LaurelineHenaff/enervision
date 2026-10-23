@@ -5,12 +5,16 @@ stages:
     deps:
     - path: pipeline/cleaning.py
       hash: md5
-      md5: 255c80b46b2547a1f0eab0b0619a13f2
-      size: 7021
+      md5: 5dd423b880a49f777c0c955f0f4145c6
+      size: 4146
     - path: pipeline/jobs/clean_history.py
       hash: md5
-      md5: 9c7dd143ad13db0d4b8d0164f3dfd7bb
-      size: 2230
+      md5: 476c9dac0dbd5b4b0d5bb2a8503c6406
+      size: 2238
+    - path: pipeline/metadata.py
+      hash: md5
+      md5: bc972ecb6aaede994a6130a6d222e8fc
+      size: 2883
     - path: pipeline/provided_files/all_sites_combined.csv
       hash: md5
       md5: 2d904fb46164ea17206748a725aec4ab
@@ -19,6 +23,10 @@ stages:
       hash: md5
       md5: 51891abd7f04bd4068b8041edf04712a
       size: 954764
+    - path: pipeline/timestamps.py
+      hash: md5
+      md5: f2617998e3fb211cd1979eedaa2e52f9
+      size: 288
     outs:
     - path: pipeline/edited_files/energy_consumption_cleaned.parquet
       hash: md5

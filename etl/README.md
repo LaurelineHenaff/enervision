@@ -41,7 +41,9 @@ Pile complète : `docker compose up -d` à la racine, puis `docker ps` doit mont
 - `mock_client/client.py` : client HTTP unique (URL, authentification facultative, délai).
 - `mock_client/services/` : une fonction par endpoint du mock. Elles lèvent `httpx2.HTTPStatusError` ou `httpx2.RequestError`, à l'appelant de décider. Les horodatages envoyés doivent porter un fuseau (convertis en UTC).
 - `mock_client/schemas/` : réponses du mock, vérifiées sur ses réponses réelles.
-- `pipeline/cleaning.py` : règles de nettoyage, fonctions pures testées sans fichier.
+- `pipeline/cleaning.py` : règles de remplissage des manquants, fonctions pures testées sans fichier.
+- `pipeline/metadata.py` : anomalies étiquetées et contrôle des totaux, de la période et de la fréquence.
+- `pipeline/timestamps.py` : horodatages ramenés en UTC.
 - `pipeline/jobs/` : un module par traitement, avec `main(argv)`. Lancement : `python -m pipeline <traitement>` (aujourd'hui `clean-history`).
 - `pipeline/provided_files/`, `pipeline/edited_files/` : données suivies par DVC, voir [`docs/donnees-dvc.md`](../docs/donnees-dvc.md).
 

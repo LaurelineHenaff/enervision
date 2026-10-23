@@ -10,12 +10,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from pipeline.cleaning import (
-    CONSUMPTION_COL,
-    WEATHER_COLS,
-    check_against_metadata,
-    clean,
-)
+from pipeline.cleaning import CONSUMPTION_COL, WEATHER_COLS, clean
+from pipeline.metadata import check_against_metadata
 
 logger = logging.getLogger(__name__)
 

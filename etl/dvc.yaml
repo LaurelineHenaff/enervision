@@ -3,6 +3,8 @@ stages:
     cmd: python -m pipeline clean-history
     deps:
       - pipeline/cleaning.py
+      - pipeline/metadata.py
+      - pipeline/timestamps.py
       - pipeline/jobs/clean_history.py
       - pipeline/provided_files/all_sites_combined.csv
       - pipeline/provided_files/dataset_metadata.json

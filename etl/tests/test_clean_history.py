@@ -7,28 +7,7 @@ import pytest
 
 from pipeline import cleaning as ch
 from pipeline.jobs import clean_history as job
-
-NAN = np.nan
-
-
-def relevés(kwh, euros=None, site="SITE001", debut="2023-01-01 00:00:00"):
-    n = len(kwh)
-    return pd.DataFrame(
-        {
-            "timestamp": pd.date_range(debut, periods=n, freq="h").strftime("%Y-%m-%d %H:%M:%S"),
-            "site_id": site,
-            "consumption_kwh": kwh,
-            "consumption_euros": euros if euros is not None else [NAN] * n,
-            "temperature_celsius": [10.0] * n,
-        }
-    )
-
-
-def test_horodatages_ramenes_en_utc():
-    serie = pd.Series(["2023-01-01 00:00:00", "2023-01-01T02:00:00+02:00", "2023-01-01T00:00:00Z"])
-    resultat = ch.normalize_timestamps(serie)
-    assert str(resultat.dt.tz) == "UTC"
-    assert resultat.nunique() == 1
+from tests.conftest import NAN, anomalie, metadonnees, relevés
 
 
 def test_kwh_retrouve_par_les_euros_au_tarif_mesure():
@@ -82,37 +61,6 @@ def test_doublons_supprimes_et_tri_chronologique():
     assert resultat["timestamp"].is_monotonic_increasing
 
 
-def metadonnees(anomalies=(), total=3, debut="2023-01-01T00:00:00", fin="2023-01-01T02:00:00"):
-    return {
-        "frequency": "1h",
-        "sites": {
-            "SITE001": {
-                "total_records": total,
-                "start_date": debut,
-                "end_date": fin,
-                "anomalies": list(anomalies),
-            }
-        },
-    }
-
-
-def anomalie(timestamp, type_, description, severity="critical"):
-    return {"timestamp": timestamp, "type": type_, "severity": severity, "description": description}
-
-
-def test_anomalies_etiquetees_avec_duree_et_priorite_a_la_coupure():
-    meta = metadonnees(
-        [
-            anomalie("2023-01-01T01:00:00", "plateau", "Consommation élevée prolongée (3h)", "medium"),
-            anomalie("2023-01-01T02:00:00", "outage", "Coupure électrique (1h)"),
-            anomalie("2023-01-01T04:00:00", "spike", "Pic de consommation (+65%)", "high"),
-        ]
-    )
-    df = ch.clean(relevés([1.0] * 6), meta)
-    assert df["anomaly_type"].tolist()[:6] == [pd.NA, "plateau", "outage", "plateau", "spike", pd.NA]
-    assert df.loc[2, "anomaly_severity"] == "critical"
-
-
 def test_pas_d_interpolation_dans_une_coupure_etiquetee():
     meta = metadonnees([anomalie("2023-01-01T01:00:00", "outage", "Coupure électrique (1h)")])
     df = ch.clean(relevés([10.0, NAN, 30.0, NAN, 50.0]), meta)
@@ -130,28 +78,6 @@ def test_les_euros_retrouvent_une_valeur_meme_dans_une_coupure():
 
 def test_sans_metadonnees_pas_de_colonnes_d_anomalie():
     assert "anomaly_type" not in ch.clean(relevés([1.0, 2.0]))
-
-
-def test_controle_des_metadonnees_conformes():
-    df = ch.clean(relevés([1.0, 2.0, 3.0]))
-    assert ch.check_against_metadata(df, metadonnees()) == []
-
-
-def test_controle_des_metadonnees_signale_les_ecarts():
-    df = ch.clean(relevés([1.0, 2.0, 3.0]))
-    meta = metadonnees(total=5, fin="2023-01-02T00:00:00")
-    meta["frequency"] = "15min"
-    meta["sites"]["SITE002"] = {"total_records": 1, "start_date": "2023-01-01T00:00:00", "end_date": "2023-01-01T00:00:00"}
-    problemes = " | ".join(ch.check_against_metadata(df, meta))
-    assert "fréquence" in problemes
-    assert "SITE001 : 3 lignes, 5 annoncées" in problemes
-    assert "période" in problemes
-    assert "SITE002 : 0 lignes, 1 annoncées" in problemes
-
-
-def test_site_absent_des_metadonnees_signale():
-    df = ch.clean(relevés([1.0], site="SITE009"))
-    assert "SITE009 : absent des métadonnées" in ch.check_against_metadata(df, metadonnees())
 
 
 def test_cli_ecrit_un_parquet_avec_les_anomalies(tmp_path):

@@ -12,6 +12,8 @@ os.environ.setdefault("MOCK_API_USERNAME", "utilisateur-test")
 os.environ.setdefault("MOCK_API_PASSWORD", "motdepasse-test")
 
 import httpx2
+import numpy as np
+import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
@@ -60,3 +62,37 @@ def mock_api(monkeypatch):
         return requetes
 
     return _mock_api
+
+
+NAN = np.nan
+
+
+def relevés(kwh, euros=None, site="SITE001", debut="2023-01-01 00:00:00"):
+    n = len(kwh)
+    return pd.DataFrame(
+        {
+            "timestamp": pd.date_range(debut, periods=n, freq="h").strftime("%Y-%m-%d %H:%M:%S"),
+            "site_id": site,
+            "consumption_kwh": kwh,
+            "consumption_euros": euros if euros is not None else [NAN] * n,
+            "temperature_celsius": [10.0] * n,
+        }
+    )
+
+
+def metadonnees(anomalies=(), total=3, debut="2023-01-01T00:00:00", fin="2023-01-01T02:00:00"):
+    return {
+        "frequency": "1h",
+        "sites": {
+            "SITE001": {
+                "total_records": total,
+                "start_date": debut,
+                "end_date": fin,
+                "anomalies": list(anomalies),
+            }
+        },
+    }
+
+
+def anomalie(timestamp, type_, description, severity="critical"):
+    return {"timestamp": timestamp, "type": type_, "severity": severity, "description": description}

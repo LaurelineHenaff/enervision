@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import pytest
 
-from pipeline import cleaning
+from pipeline import cleaning, metadata
 from pipeline.jobs.clean_history import DEFAULT_INPUT, DEFAULT_METADATA
 
 pytestmark = pytest.mark.skipif(not DEFAULT_INPUT.exists(), reason="fichier DVC absent : dvc pull")
@@ -42,7 +42,7 @@ def test_anomalies_etiquetees(nettoye):
 
 
 def test_donnees_conformes_aux_metadonnees(nettoye, metadonnees):
-    assert cleaning.check_against_metadata(nettoye, metadonnees) == []
+    assert metadata.check_against_metadata(nettoye, metadonnees) == []
 
 
 def test_horodatages_en_utc_sans_doublon(nettoye):
