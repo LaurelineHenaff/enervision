@@ -91,11 +91,17 @@ des identifiants numériques). La condition du rôle `deploy` s'appuie donc sur
 `github_oidc_sub_prefix`, pas sur le nom du dépôt. Pour vérifier :
 
 ```bash
-gh api repos/projet-piscine-eadl-enervision/enervision/actions/oidc/customization/sub
+gh api repos/projet-piscine-eadl-enervision/smart-energy-optimizer/actions/oidc/customization/sub
 ```
 
 Si le `sub` ne correspond pas, le workflow échoue avec
-`Not authorized to perform sts:AssumeRoleWithWebIdentity`.
+`Not authorized to perform sts:AssumeRoleWithWebIdentity`. **À revérifier après tout renommage
+du dépôt** (il s'appelait `enervision` avant `smart-energy-optimizer`).
+
+**Nom des images GHCR.** Les workflows publient sous `ghcr.io/<org>/<dépôt>/…`
+(`github.repository`). Le déploiement passe ce préfixe à `docker compose` par `IMAGE_PREFIX` :
+après un renommage du dépôt, vérifier qu'aucun ancien nom ne reste écrit en dur dans
+`docker-compose.staging.yml`.
 
 **Un seul fournisseur OIDC GitHub par compte.** S'il existe déjà (autre projet dans le même
 compte), mettre `create_github_oidc_provider = false`.
