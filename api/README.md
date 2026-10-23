@@ -154,4 +154,4 @@ L'API ne crée plus de table au démarrage : le schéma ne vient que des migrati
 
 - **Asynchrone** : les routes sont en `async def` et la base est interrogée avec `await`. Ne pas oublier `await` devant les appels à `db`.
 - **Commit** : `get_db()` ne valide rien automatiquement — une route qui écrit doit appeler `await db.commit()`. En cas d'erreur, tout ce qui n'est pas commité est annulé.
-- **bcrypt est limité à `< 4.1`** dans `requirements.in` : `passlib` n'est plus maintenu et plante avec les versions plus récentes de bcrypt.
+- **Mots de passe** : hachés en bcrypt avec `pwdlib` (remplace `passlib`, qui n'est plus maintenu et plantait avec bcrypt >= 4.1).

@@ -15,9 +15,7 @@ anyio==4.15.1
 asyncpg==0.32.0
     # via -r api/requirements.in
 bcrypt==5.0.0
-    # via
-    #   -r api/requirements.in
-    #   passlib
+    # via pwdlib
 certifi==2026.10.19
     # via
     #   httpcore
@@ -53,7 +51,7 @@ idna==3.20
     #   httpx
 opentelemetry-api==1.45.1
     # via fastapi
-passlib==1.7.4
+pwdlib==0.3.1
     # via -r api/requirements.in
 pyasn1==0.6.4
     # via
