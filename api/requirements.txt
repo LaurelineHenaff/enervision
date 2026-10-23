@@ -10,18 +10,12 @@ annotated-types==0.8.0
     # via pydantic
 anyio==4.15.1
     # via
-    #   httpx
+    #   httpx2
     #   starlette
 asyncpg==0.32.0
     # via -r api/requirements.in
 bcrypt==5.0.0
-    # via
-    #   -r api/requirements.in
-    #   passlib
-certifi==2026.10.19
-    # via
-    #   httpcore
-    #   httpx
+    # via pwdlib
 cffi==2.1.1
     # via cryptography
 click==8.5.0
@@ -40,20 +34,20 @@ greenlet==3.5.6
     # via sqlalchemy
 h11==0.16.0
     # via
-    #   httpcore
+    #   httpcore2
     #   uvicorn
-httpcore==1.0.9
-    # via httpx
-httpx==0.28.1
+httpcore2==2.16.0
+    # via httpx2
+httpx2==2.16.0
     # via -r api/requirements.in
 idna==3.20
     # via
     #   anyio
     #   email-validator
-    #   httpx
+    #   httpx2
 opentelemetry-api==1.45.1
     # via fastapi
-passlib==1.7.4
+pwdlib==0.3.1
     # via -r api/requirements.in
 pyasn1==0.6.4
     # via
@@ -85,6 +79,10 @@ sqlalchemy==2.1.6
     # via -r api/requirements.in
 starlette==1.9.0
     # via fastapi
+truststore==0.10.5
+    # via
+    #   httpcore2
+    #   httpx2
 typing-extensions==4.16.0
     # via
     #   anyio

@@ -1,7 +1,7 @@
 """Santé de l'API et de l'API Mock. Utilisées par le staging et le workflow de release."""
 from datetime import UTC, datetime
 
-import httpx
+import httpx2
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import settings
@@ -27,15 +27,15 @@ async def health():
 @router.get("/mock")
 async def health_mock():
     try:
-        async with httpx.AsyncClient(timeout=5.0, auth=MOCK_API_AUTH) as client:
+        async with httpx2.AsyncClient(timeout=5.0, auth=MOCK_API_AUTH) as client:
             response = await client.get(f"{MOCK_API_URL}/health")
             response.raise_for_status()
             return response.json()
 
-    except httpx.RequestError:
+    except httpx2.RequestError:
         raise HTTPException(status_code=503, detail="API Mock inaccessible")
 
-    except httpx.HTTPStatusError as exc:
+    except httpx2.HTTPStatusError as exc:
         raise HTTPException(
             status_code=502, detail=f"Erreur API Mock : {exc.response.status_code}"
         )
