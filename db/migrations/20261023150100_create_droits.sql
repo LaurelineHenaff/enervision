@@ -38,4 +38,19 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA ref GRANT SELECT ON TABLES TO enervision_ml, 
 ALTER DEFAULT PRIVILEGES IN SCHEMA ml GRANT SELECT, INSERT, UPDATE ON TABLES TO enervision_ml;
 ALTER DEFAULT PRIVILEGES IN SCHEMA ml, core GRANT SELECT ON TABLES TO enervision_api;
 ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT SELECT, INSERT, UPDATE ON TABLES TO enervision_api;
+
+-- Recalcul de site_baseline par l'ETL.
+-- Seul le propriétaire de la vue (le compte des migrations) peut la recalculer.
+-- Cette fonction s'exécute avec les droits de son créateur : l'ETL l'appelle sans être propriétaire.
+CREATE OR REPLACE FUNCTION analytics.refresh_site_baseline()
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, pg_temp
+AS $$
+    REFRESH MATERIALIZED VIEW CONCURRENTLY analytics.site_baseline;
+$$;
+
+REVOKE ALL ON FUNCTION analytics.refresh_site_baseline() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION analytics.refresh_site_baseline() TO enervision_etl;
 -- migrate:down

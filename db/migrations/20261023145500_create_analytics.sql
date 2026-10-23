@@ -80,7 +80,7 @@ SELECT
 FROM core.energy_reading
 WHERE data_quality <> 'critical'
 GROUP BY 1, 2, 3, 4
-WITH NO DATA;
+WITH DATA;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_site_baseline
     ON analytics.site_baseline (site_id, month, day_type, hour);
