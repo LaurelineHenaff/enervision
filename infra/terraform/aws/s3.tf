@@ -4,6 +4,10 @@
 #   backups/  sauvegardes de la base (pg_dump), gardées 30 jours
 # La base elle-même reste sur le disque de l'instance : PostgreSQL a besoin d'un disque, pas de S3.
 
+# Chiffrement SSE-S3 (clé gérée par AWS, voir plus bas) et non SSE-KMS avec une clé à nous :
+# une clé KMS ajoute un coût, des droits kms: à gérer et une suppression différée au destroy,
+# pour un gain de contrôle inutile sur un projet de deux semaines.
+#trivy:ignore:AWS-0132
 resource "aws_s3_bucket" "data" {
   # Le numéro de compte rend le nom unique au monde.
   bucket = "${local.name}-data-${data.aws_caller_identity.current.account_id}"
@@ -12,7 +16,9 @@ resource "aws_s3_bucket" "data" {
   force_destroy = true
 }
 
-# Chiffrement au repos, explicite (c'est aussi le défaut de S3).
+# Chiffrement au repos, explicite (c'est aussi le défaut de S3). SSE-S3 volontaire : voir la
+# justification au-dessus du bucket.
+#trivy:ignore:AWS-0132
 resource "aws_s3_bucket_server_side_encryption_configuration" "data" {
   bucket = aws_s3_bucket.data.id
 
