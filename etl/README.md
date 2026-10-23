@@ -44,6 +44,7 @@ Pile complète : `docker compose up -d` à la racine, puis `docker ps` doit mont
 - `pipeline/cleaning.py` : règles de remplissage des manquants, fonctions pures testées sans fichier.
 - `pipeline/metadata.py` : anomalies étiquetées et contrôle des totaux, de la période et de la fréquence.
 - `pipeline/timestamps.py` : horodatages ramenés en UTC.
+- `pipeline/rows.py` : lignes prêtes à insérer en base (`core.energy_reading` : axe `time`, heure du mock, décimaux).
 - `pipeline/jobs/` : un module par traitement, avec `main(argv)`. Lancement : `python -m pipeline <traitement>` (aujourd'hui `clean-history`).
 - `pipeline/provided_files/`, `pipeline/edited_files/` : données suivies par DVC, voir [`docs/donnees-dvc.md`](../docs/donnees-dvc.md).
 

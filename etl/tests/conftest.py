@@ -96,3 +96,19 @@ def make_metadata(anomalies=(), total=3, start="2023-01-01T00:00:00", end="2023-
 
 def make_anomaly(timestamp, type_, description, severity="critical"):
     return {"timestamp": timestamp, "type": type_, "severity": severity, "description": description}
+
+
+READING_PAYLOAD = {
+    "timestamp": "2026-10-23T12:50:25.646645",
+    "site_id": "SITE001",
+    "site_type": "office",
+    "consumption_kw": 183.61,
+    "consumption_kwh": 183.61,
+    "voltage_v": 395.4,
+    "current_a": 282.23,
+    "power_factor": 0.898,
+    "temperature_celsius": 10.1,
+    "humidity_percent": None,
+    "null_reasons": ["humidity_sensor_failure"],
+    "data_quality": "partial",
+}

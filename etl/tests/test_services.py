@@ -16,24 +16,9 @@ from mock_client.services import (
     site_service,
     statistic_service,
 )
-from tests.conftest import SITE_EXAMPLE
+from tests.conftest import READING_PAYLOAD, SITE_EXAMPLE
 
 pytestmark = pytest.mark.anyio
-
-READING = {
-    "timestamp": "2026-10-23T12:50:25.646645",
-    "site_id": "SITE001",
-    "site_type": "office",
-    "consumption_kw": 183.61,
-    "consumption_kwh": 183.61,
-    "voltage_v": 395.4,
-    "current_a": 282.23,
-    "power_factor": 0.898,
-    "temperature_celsius": 10.1,
-    "humidity_percent": None,
-    "null_reasons": ["humidity_sensor_failure"],
-    "data_quality": "partial",
-}
 
 
 async def test_sites_url_and_authentication(mock_api):
@@ -99,7 +84,7 @@ async def test_unexpected_response_rejected(mock_api):
 
 
 async def test_current_reading_keeps_nulls(mock_api):
-    received_requests = mock_api(lambda request: httpx2.Response(200, json=READING))
+    received_requests = mock_api(lambda request: httpx2.Response(200, json=READING_PAYLOAD))
     reading = await reading_service.get_current_reading("SITE001")
     assert received_requests[0].url.path == "/api/v1/sites/SITE001/current"
     assert reading.humidity_percent is None
@@ -107,7 +92,7 @@ async def test_current_reading_keeps_nulls(mock_api):
 
 
 async def test_readings_parameters_in_utc(mock_api):
-    received_requests = mock_api(lambda request: httpx2.Response(200, json=[READING]))
+    received_requests = mock_api(lambda request: httpx2.Response(200, json=[READING_PAYLOAD]))
     paris = timezone(timedelta(hours=2))
 
     readings = await reading_service.get_readings(
@@ -261,9 +246,9 @@ async def test_raw_response_propagates_network_errors(mock_api):
 def test_mock_timestamps_converted_to_utc():
     from mock_client.schemas.reading import Reading
 
-    naive = Reading.model_validate({**READING, "timestamp": "2026-10-23T12:50:25.646645"})
-    with_z = Reading.model_validate({**READING, "timestamp": "2026-10-23T12:50:25.646645Z"})
-    paris = Reading.model_validate({**READING, "timestamp": "2026-10-23T14:50:25.646645+02:00"})
+    naive = Reading.model_validate({**READING_PAYLOAD, "timestamp": "2026-10-23T12:50:25.646645"})
+    with_z = Reading.model_validate({**READING_PAYLOAD, "timestamp": "2026-10-23T12:50:25.646645Z"})
+    paris = Reading.model_validate({**READING_PAYLOAD, "timestamp": "2026-10-23T14:50:25.646645+02:00"})
     assert naive.timestamp == with_z.timestamp == paris.timestamp
     assert naive.timestamp.utcoffset() == timedelta(0)
 
@@ -271,9 +256,9 @@ def test_mock_timestamps_converted_to_utc():
 def test_null_reasons_default_empty_and_quality_required():
     from mock_client.schemas.reading import Reading
 
-    assert Reading.model_validate({**READING, "null_reasons": None}).null_reasons == []
-    assert Reading.model_validate({k: v for k, v in READING.items() if k != "null_reasons"}).null_reasons == []
+    assert Reading.model_validate({**READING_PAYLOAD, "null_reasons": None}).null_reasons == []
+    assert Reading.model_validate({k: v for k, v in READING_PAYLOAD.items() if k != "null_reasons"}).null_reasons == []
     with pytest.raises(ValidationError):
-        Reading.model_validate({**READING, "data_quality": None})
+        Reading.model_validate({**READING_PAYLOAD, "data_quality": None})
     with pytest.raises(ValidationError):
-        Reading.model_validate({**READING, "data_quality": "inconnue"})
+        Reading.model_validate({**READING_PAYLOAD, "data_quality": "inconnue"})
