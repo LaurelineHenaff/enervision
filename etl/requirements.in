@@ -2,3 +2,5 @@ fastapi
 uvicorn
 httpx2
 python-dotenv
+pandas
+pyarrow

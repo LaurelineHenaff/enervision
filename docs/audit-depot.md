@@ -38,7 +38,7 @@ Vérifié et sain : `assign-pr-author.yml` utilise `pull_request` (pas `pull_req
 
 - **P2. Aucun pilote de base dans l'API.** `DATABASE_URL` est passée à l'API, mais `api/requirements.in` ne contient ni `psycopg` ni `sqlalchemy` : elle ne peut pas se connecter à la base.
 - **P2. Divergence entre l'API et l'ETL.** L'API accepte l'absence d'identifiants du mock (URL interne de l'école) et normalise l'URL. L'ETL lève une `RuntimeError` non gérée (erreur 500), n'a pas d'URL par défaut ni de `rstrip`. C'est la cause du contournement `-` dans `staging.env` : aligner l'ETL sur l'API.
-- **P3. Nom du paquet de l'ETL.** Le dossier `etl/api_mock` suggère qu'il s'agit d'une simulation de l'API Mock alors qu'il contient le client. À renommer en `client` ou `sources`.
+- **P3. Nom du paquet de l'ETL.** Le dossier `etl/api_mock` suggérait une simulation de l'API Mock alors qu'il contient le client. **Traité le 23/10/2026** : renommé `etl/mock_client`.
 - **Normal à ce stade, à suivre** : l'ETL n'écrit pas encore dans TimescaleDB (ni schéma, ni hypertable, ni migrations, ni modèle `EnergyReading`) ; le ML se limite à un `SELECT 1` et à un run MLflow de vérification ; il n'existe ni détection de pics, ni recommandations, ni tableau de bord.
 
 ## Nettoyage du dépôt

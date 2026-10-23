@@ -1,36 +1,61 @@
-# ETL 
+# ETL
 
-## Installation (Windows) pour se connecter à l'API Mock
+Lit l'API Mock, nettoie l'historique 2023-2024 et, plus tard, alimentera TimescaleDB. Seule la route `/health` répond (sonde Docker et supervision).
 
-```powershell
+## Installation
+
+```bash
 cd etl
 python -m venv .venv
-.venv\Scripts\Activate
-python -m pip install -r requirements.txt
+source .venv/bin/activate        # Windows : .venv\Scripts\Activate
+pip install -r requirements-dev.txt
 ```
 
-## Lancer en local
+Variables dans un `.env` (dans `etl/` ou à la racine) : `MOCK_API_URL`, `MOCK_API_USERNAME`, `MOCK_API_PASSWORD`.
 
-```powershell
-python -m uvicorn main:app --reload
+- Réseau de l'école : `MOCK_API_URL=http://10.43.43.80:8000`, identifiants vides. C'est la valeur par défaut.
+- Internet : `https://api-mock.charlieandre.fr` avec l'authentification basique (notes Teams). Un 401 signifie que l'identifiant ou le mot de passe est refusé.
+
+## Tester en local
+
+Depuis `etl/`, environnement virtuel activé.
+
+```bash
+python -m pytest && ruff check .          # tests et lint, sans réseau ni base, moins d'une seconde
+dvc pull && python -m pipeline clean-history --output /tmp/essai.parquet   # nettoyage sur le vrai fichier
+docker build -t etl-local . && docker run -d --rm --name etl-local -p 8001:8000 etl-local
+docker inspect --format '{{.State.Health.Status}}' etl-local               # healthy après environ 30 s
+docker rm -f etl-local
 ```
 
-- http://localhost:8000/sites : liste des sites, lue depuis l'API Mock
-- http://localhost:8000/docs : documentation Swagger
+Client du mock, depuis le réseau de l'école :
 
-Avec `docker compose up -d` (voir le README à la racine), l'ETL est publié sur le port 8001 : http://localhost:8001/docs.
+```bash
+python -c "import asyncio; from mock_client.services import site_service as s; print(asyncio.run(s.get_all_sites()))"
+```
 
-## Rôle de chaque couche
+Pile complète : `docker compose up -d` à la racine, puis `docker ps` doit montrer `enervision-etl` en `healthy` (http://localhost:8001/health). `/docs` et `/sites` renvoient 404 : c'est voulu.
 
-| Dossier | Rôle |
-|---|---|
-| `routers/` | Reçoit la requête HTTP, appelle un service, renvoie la réponse. Pas de logique métier. |
-| `core/` | Configuration, sécurité. |
-| `models/` | Données telles que stockées en base. |
-| `repositories/` | Accès à la base de données. |
-| `schemas/` | Modèles Pydantic des données échangées avec le front. |
-| `services/` | Logique métier. |
+## Organisation
 
-### Fichier env
-Pour que le module fonctionne, il faut créer un fichier .env à la racine du module ETL, contenant les valeurs de MOCK_API_URL, MOCK_API_USERNAME, MOCK_API_PASSWORD\
-exemple : MOCK_API_USERNAME=name
+- `mock_client/client.py` : client HTTP unique (URL, authentification facultative, délai). `fetch_raw` garde la réponse telle que reçue (statut, paramètres, heure de réception, JSON), échecs compris, pour `raw.api_response`.
+- `mock_client/services/` : une fonction par endpoint du mock. Elles lèvent `httpx2.HTTPStatusError` ou `httpx2.RequestError`, à l'appelant de décider. Les horodatages envoyés doivent porter un fuseau (convertis en UTC).
+- `mock_client/schemas/` : réponses du mock, vérifiées sur ses réponses réelles et alignées sur les tables de la base. Horodatages en UTC (sans fuseau = UTC), `null_reasons` vide plutôt que nul, `data_quality` obligatoire.
+- `pipeline/cleaning.py` : règles de remplissage des manquants, fonctions pures testées sans fichier.
+- `pipeline/metadata.py` : anomalies étiquetées et contrôle des totaux, de la période et de la fréquence.
+- `pipeline/timestamps.py` : horodatages ramenés en UTC.
+- `pipeline/rows.py` : lignes prêtes à insérer en base (`core.energy_reading` : axe `time`, heure du mock, décimaux).
+- `pipeline/jobs/` : un module par traitement, avec `main(argv)`. Lancement : `python -m pipeline <traitement>` (aujourd'hui `clean-history`).
+- `pipeline/provided_files/`, `pipeline/edited_files/` : données suivies par DVC, voir [`docs/donnees-dvc.md`](../docs/donnees-dvc.md).
+
+## Nettoyage de l'historique
+
+`dvc repro` (ou `python -m pipeline clean-history`, qui lit le CSV et `dataset_metadata.json`). Chaque colonne brute est conservée, avec `<colonne>_clean` et `<colonne>_source` (`measured`, `recovered_from_euros`, `interpolated`, `missing`), et les anomalies étiquetées des métadonnées sont reportées dans `anomaly_type` et `anomaly_severity`. Le traitement signale tout écart avec les totaux, la période et la fréquence annoncés.
+
+Sur le fichier actuel, pour la consommation : 119 807 mesurées, 353 retrouvées par les euros (0,15 €/kWh), 1 046 interpolées, 1 441 vides. Les 1 798 zéros sont tous dans une coupure étiquetée : ce sont de vraies coupures, conservées. Une valeur manquante dans une coupure n'est jamais interpolée.
+
+## Ajouter un traitement
+
+1. Créer `pipeline/jobs/<nom>.py` avec `main(argv)` ; garder les règles dans un module sans fichier ni réseau pour les tester.
+2. L'inscrire dans `JOBS` de `pipeline/__main__.py`.
+3. Planification : un traitement qui boucle (collecte toutes les 10 à 60 s, ce que cron ne sait pas faire) devient un service compose sur la même image, avec `command: python -m pipeline <traitement>`. Un traitement ponctuel se lance avec `docker compose run --rm etl python -m pipeline <traitement>`, ou par un minuteur systemd sur la VM.

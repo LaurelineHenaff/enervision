@@ -46,7 +46,7 @@ repos:
 
   # Lint Python, comme le job python de la CI. La version doit rester celle de requirements-dev.txt
   # (api, etl, ml) : les mettre à jour ensemble. La CI lance ruff depuis le dossier de chaque module,
-  # dont les imports locaux (par exemple api_mock dans etl) sont alors reconnus comme internes au
+  # dont les imports locaux (par exemple mock_client dans etl) sont alors reconnus comme internes au
   # projet : `src` reproduit ce comportement depuis la racine du dépôt.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.1

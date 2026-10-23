@@ -23,7 +23,7 @@ Documents liés : [déploiement du staging](deploiement-staging.md), [mise en pr
 | API, documentation | http://localhost:8000/docs | http://10.43.43.50:8000/docs | WIP |
 | API, santé et version | http://localhost:8000/health | http://10.43.43.50:8000/health | WIP |
 | API, santé du mock | http://localhost:8000/health/mock | http://10.43.43.50:8000/health/mock | WIP |
-| ETL, documentation | http://localhost:8001/docs | http://10.43.43.50:8001/docs | WIP |
+| ETL, santé | http://localhost:8001/health | http://10.43.43.50:8001/health | WIP |
 | Frontend | http://localhost:4000 | http://10.43.43.50:4000 (l'API y est jointe par `/api/health`) | WIP |
 | Base de données | `localhost:5432`, base `enervision` | non exposée (réseau interne Docker de la VM) | WIP |
 

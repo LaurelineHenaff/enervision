@@ -1,24 +1,25 @@
 """Fixtures communes aux tests unitaires de l'ETL.
 
 Les tests ne demandent ni base de données ni réseau :
-- les identifiants de l'API Mock reçoivent des valeurs de test avant tout import de api_mock ;
+- les identifiants de l'API Mock reçoivent des valeurs de test avant tout import de mock_client ;
 - l'API Mock est remplacée par un httpx2.MockTransport qui répond avec une fonction de test.
 """
 import os
 
-# À faire avant d'importer api_mock.* : la config est lue à l'import de api_mock.config
+# À faire avant d'importer mock_client.* : la config est lue à l'import de mock_client.config
 os.environ.setdefault("MOCK_API_URL", "http://mock.test")
 os.environ.setdefault("MOCK_API_USERNAME", "utilisateur-test")
 os.environ.setdefault("MOCK_API_PASSWORD", "motdepasse-test")
 
 import httpx2
+import numpy as np
+import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
-from api_mock.services import site_service
 from main import app
 
-SITE_EXEMPLE = {
+SITE_EXAMPLE = {
     "site_id": "SITE001",
     "site_type": "office",
     "site_name": "Bureau Paris",
@@ -45,19 +46,69 @@ def mock_api(monkeypatch):
 
     Renvoie la liste des requêtes reçues, pour vérifier l'URL et l'authentification.
     """
-    requetes: list[httpx2.Request] = []
+    received_requests: list[httpx2.Request] = []
 
     def _mock_api(handler):
-        vrai_client = httpx2.AsyncClient
+        real_client = httpx2.AsyncClient
 
-        def enregistrer(request):
-            requetes.append(request)
+        def record(request):
+            received_requests.append(request)
             return handler(request)
 
-        def faux_client(**kwargs):
-            return vrai_client(transport=httpx2.MockTransport(enregistrer), **kwargs)
+        def fake_client(**kwargs):
+            return real_client(transport=httpx2.MockTransport(record), **kwargs)
 
-        monkeypatch.setattr(site_service.httpx2, "AsyncClient", faux_client)
-        return requetes
+        monkeypatch.setattr(httpx2, "AsyncClient", fake_client)
+        return received_requests
 
     return _mock_api
+
+
+NAN = np.nan
+
+
+def make_readings(kwh, euros=None, site="SITE001", start="2023-01-01 00:00:00"):
+    n = len(kwh)
+    return pd.DataFrame(
+        {
+            "timestamp": pd.date_range(start, periods=n, freq="h").strftime("%Y-%m-%d %H:%M:%S"),
+            "site_id": site,
+            "consumption_kwh": kwh,
+            "consumption_euros": euros if euros is not None else [NAN] * n,
+            "temperature_celsius": [10.0] * n,
+        }
+    )
+
+
+def make_metadata(anomalies=(), total=3, start="2023-01-01T00:00:00", end="2023-01-01T02:00:00"):
+    return {
+        "frequency": "1h",
+        "sites": {
+            "SITE001": {
+                "total_records": total,
+                "start_date": start,
+                "end_date": end,
+                "anomalies": list(anomalies),
+            }
+        },
+    }
+
+
+def make_anomaly(timestamp, type_, description, severity="critical"):
+    return {"timestamp": timestamp, "type": type_, "severity": severity, "description": description}
+
+
+READING_PAYLOAD = {
+    "timestamp": "2026-10-23T12:50:25.646645",
+    "site_id": "SITE001",
+    "site_type": "office",
+    "consumption_kw": 183.61,
+    "consumption_kwh": 183.61,
+    "voltage_v": 395.4,
+    "current_a": 282.23,
+    "power_factor": 0.898,
+    "temperature_celsius": 10.1,
+    "humidity_percent": None,
+    "null_reasons": ["humidity_sensor_failure"],
+    "data_quality": "partial",
+}

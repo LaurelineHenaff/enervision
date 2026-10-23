@@ -164,7 +164,7 @@ Puis ouvre http://localhost:4100 (l'API est jointe par http://localhost:4100/api
 
 `docker compose up -d` démarre aussi l'ETL (service `etl`). Le code de `etl/` est monté dans le conteneur, et Uvicorn recharge l'ETL à chaque modification. Il lit `MOCK_API_URL`, `MOCK_API_USERNAME` et `MOCK_API_PASSWORD` dans le `.env` à la racine du projet.
 
-- Documentation interactive : http://localhost:8001/docs
+- Santé : http://localhost:8001/health (l'ETL n'expose aucune autre route ni documentation interactive)
 
 Après une modification de `etl/requirements.in`, reconstruis l'image :
 
@@ -235,6 +235,10 @@ pre-commit install
 `pre-commit install` met en place les hooks de commit, de message de commit et de push. Le premier commit est plus long, car les outils se téléchargent une fois. Les hooks fonctionnent ensuite sans activer l'environnement. Au `git push`, ils relisent aussi le nom de la branche et les messages de tous les commits que ta branche ajoute à `origin/main` (fais un `git fetch` avant si `origin/main` est ancien), ce qui rattrape les commits faits sans hook. Pour tout contrôler sans commiter : `pre-commit run --all-files`.
 
 Ces hooks ne remplacent pas la CI (`git commit --no-verify` les contourne) et ne peuvent pas contrôler le titre de la PR, qui est vérifié sur GitHub. Quand la version de `ruff` change dans les `requirements-dev.txt`, change aussi celle de `.pre-commit-config.yaml`.
+
+### 7 bis. Récupérer les données volumineuses (DVC)
+
+Les jeux de données de `etl/` sont suivis avec DVC, pas avec Git. Mise en place et usage : [`docs/donnees-dvc.md`](docs/donnees-dvc.md). Tests de l'ETL : [`etl/README.md`](etl/README.md).
 
 ## Staging
 
