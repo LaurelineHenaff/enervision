@@ -7,7 +7,5 @@ asyncpg
 pydantic-settings
 email-validator
 python-jose[cryptography]
-passlib[bcrypt]
-# passlib n'est plus maintenu et plante avec bcrypt >= 4.1
-bcrypt
+pwdlib[bcrypt]
 python-multipart
