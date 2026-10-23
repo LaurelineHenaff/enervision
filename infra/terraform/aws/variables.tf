@@ -47,7 +47,7 @@ variable "api_ingress_cidrs" {
 variable "github_repository" {
   description = "Dépôt GitHub autorisé à déployer en production (organisation/dépôt)."
   type        = string
-  default     = "projet-piscine-eadl-enervision/enervision"
+  default     = "projet-piscine-eadl-enervision/smart-energy-optimizer"
 }
 
 variable "create_github_oidc_provider" {

@@ -74,7 +74,7 @@ NG_ALLOWED_HOSTS=localhost,127.0.0.1,10.43.43.50
 En root sur la VM :
 
 ```bash
-git clone https://github.com/projet-piscine-eadl-enervision/enervision /opt/enervision
+git clone https://github.com/projet-piscine-eadl-enervision/smart-energy-optimizer /opt/enervision
 install -d -m 700 /etc/enervision
 # créer /etc/enervision/staging.env (voir ci-dessus), puis :
 chmod 600 /etc/enervision/staging.env
