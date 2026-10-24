@@ -86,6 +86,18 @@ systemctl start update-staging.service
 
 Ce clone est réservé au déploiement : le script le réinitialise sur `origin/main`, il ne faut pas y travailler. Le clone de travail éventuel se trouve ailleurs (par exemple `~/workspace/enervision`).
 
+### Comptes de service de la VM
+
+`infra/scripts/setup-vm-roles.sh` crée les comptes de service `mlflow` et `monitoring`, sans mot de passe ni shell, propriétaires de `/srv/mlflow` et de `/srv/monitoring`. À lancer en root, il peut être relancé sans risque :
+
+```bash
+/opt/enervision/infra/scripts/setup-vm-roles.sh
+```
+
+- Le script affiche leur `uid:gid`, à passer à `user:` dans le compose quand MLflow et Prometheus seront déployés ; il n'installe aucun de ces services.
+- Il ne touche à aucun compte de personne : l'administration de la VM reste faite en `root`. Des comptes individuels et leurs droits viendront dans une étape ultérieure, si besoin, ainsi que l'interdiction de la connexion SSH de `root` et par mot de passe.
+- La production sur AWS n'a pas de SSH (déploiement par SSM) et n'est pas concernée.
+
 ### Accès aux images GHCR
 
 Les images GHCR d'un dépôt public sont privées par défaut. Le staging utilise un `docker login` avec un jeton personnel plutôt qu'un passage en public :
